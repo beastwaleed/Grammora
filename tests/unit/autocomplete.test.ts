@@ -96,3 +96,4 @@ describe('Smart Autocomplete Engine Unit Tests', () => {
     expect(engine.getSuggestion()).toBeNull();
   });
 });
+

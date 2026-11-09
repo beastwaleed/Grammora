@@ -1,4 +1,5 @@
 import { getSettings } from './settings';
+import { sendToBackground, AIActionResponse } from './messaging';
 import { mockAIRequest, WritingActionType } from './mock-ai';
 
 export interface AIActionResult {
@@ -10,21 +11,59 @@ export interface AIActionResult {
 }
 
 /**
- * Dispatches an AI writing transformation request to the Express backend gateway.
- * Automatically falls back to the local mock engine if the backend is offline.
+ * Dispatches an AI writing transformation request to the Express backend gateway
+ * via the background service worker (to avoid webpage CORS and mixed-content blocks).
  */
 export async function executeAIAction(
   text: string,
   action: WritingActionType
 ): Promise<AIActionResult> {
   const settings = await getSettings();
-  const backendUrl = settings.backendUrl || 'http://localhost:3001';
   const start = Date.now();
 
+  // 1. Consent guard
+  if (!settings.hasConsented) {
+    console.log('[Grammora API] Cloud AI consent not granted yet. Using local engine.');
+    const mockRes = await mockAIRequest(text, action, 250);
+    return {
+      result: mockRes.result,
+      provider: 'local-offline',
+      model: 'local-rules',
+      latencyMs: Date.now() - start,
+      isFallback: true,
+    };
+  }
+
+  // 2. Dispatch via background service worker (exempt from webpage CORS & Mixed-Content)
+  if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+    try {
+      const response = await sendToBackground<AIActionResponse>({
+        type: 'EXECUTE_AI_ACTION',
+        payload: { text, action },
+      });
+
+      if (response && response.ok && response.result) {
+        return {
+          result: response.result,
+          provider: response.provider || 'groq',
+          model: response.model || 'live',
+          latencyMs: response.latencyMs || Date.now() - start,
+        };
+      }
+
+      throw new Error(response?.error || 'AI gateway returned an error');
+    } catch (err: any) {
+      console.warn('[Grammora API] Background messaging failed:', err.message);
+      // Fall through to direct fetch fallback
+    }
+  }
+
+  // 3. Direct fetch fallback (for local development/test environments)
+  const backendUrl = settings.backendUrl || 'http://localhost:3001';
   let endpoint = `${backendUrl}/api/rewrite`;
-  let payload: Record<string, any> = {
+  let bodyPayload: Record<string, any> = {
     text,
-    requestId: `ext-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    requestId: `direct-${Date.now()}`,
   };
 
   if (action === 'grammar') {
@@ -33,27 +72,18 @@ export async function executeAIAction(
     endpoint = `${backendUrl}/api/rewrite`;
   } else if (['professional', 'friendly', 'concise'].includes(action)) {
     endpoint = `${backendUrl}/api/tone`;
-    payload.mode = action;
+    bodyPayload.mode = action;
   }
 
-  // Attempt real backend gateway first
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-
-    const response = await fetch(endpoint, {
+    const res = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyPayload),
     });
 
-    clearTimeout(timeout);
-
-    if (response.ok) {
-      const data = await response.json();
+    if (res.ok) {
+      const data = await res.json();
       return {
         result: data.result,
         provider: data.provider || 'gateway',
@@ -61,24 +91,17 @@ export async function executeAIAction(
         latencyMs: data.latencyMs || Date.now() - start,
       };
     }
-
-    // Structured error from server
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData?.error?.message || `HTTP ${response.status}`);
-  } catch (backendError: any) {
-    console.warn(
-      `[Grammora API] Backend call to ${endpoint} failed (${backendError.message}). Using local fallback.`
-    );
-
-    // Fall back to local mock engine for testing continuity
-    const mockRes = await mockAIRequest(text, action, 300);
-    return {
-      result: mockRes.result,
-      provider: 'mock-fallback',
-      model: 'local-heuristic',
-      latencyMs: Date.now() - start,
-      isFallback: true,
-    };
+  } catch (err: any) {
+    console.warn('[Grammora API] Direct fetch failed:', err.message);
   }
-}
 
+  // 4. Final fallback to mock engine
+  const mockRes = await mockAIRequest(text, action, 300);
+  return {
+    result: mockRes.result,
+    provider: 'mock-fallback',
+    model: 'local-heuristic',
+    latencyMs: Date.now() - start,
+    isFallback: true,
+  };
+}

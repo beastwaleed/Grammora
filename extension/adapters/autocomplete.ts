@@ -97,22 +97,44 @@ export class AutocompleteEngine {
     this.abortController = new AbortController();
     const backendUrl = settings.backendUrl || 'http://localhost:3001';
 
+    let completionText = '';
+    let requestId = `ac-${Date.now()}-${seq}`;
+
     try {
-      const response = await fetch(`${backendUrl}/api/autocomplete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: preceding.text,
-          completionLength: settings.completionLength || 'short',
-          requestId: `ac-${Date.now()}-${seq}`,
-        }),
-        signal: this.abortController.signal,
-      });
+      if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+        const bgRes = await new Promise<any>((resolve) => {
+          chrome.runtime.sendMessage(
+            {
+              type: 'EXECUTE_AUTOCOMPLETE',
+              payload: {
+                text: preceding.text,
+                completionLength: settings.completionLength || 'short',
+              },
+            },
+            (response) => resolve(response)
+          );
+        });
 
-      if (!response.ok) return;
+        if (bgRes && bgRes.ok && bgRes.result) {
+          completionText = bgRes.result;
+        }
+      } else {
+        const response = await fetch(`${backendUrl}/api/autocomplete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: preceding.text,
+            completionLength: settings.completionLength || 'short',
+            requestId,
+          }),
+          signal: this.abortController.signal,
+        });
 
-      const data = await response.json();
-      const completionText: string = data.result || '';
+        if (response.ok) {
+          const data = await response.json();
+          completionText = data.result || '';
+        }
+      }
 
       if (!completionText.trim()) return;
 
@@ -202,3 +224,4 @@ export class AutocompleteEngine {
     }
   }
 }
+

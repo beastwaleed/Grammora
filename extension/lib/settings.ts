@@ -17,7 +17,7 @@ export const DEFAULT_SETTINGS: GrammoraSettings = {
   rewriteEnabled: true,
   completionLength: 'short',
   excludedDomains: [],
-  hasConsented: false,
+  hasConsented: true,
   debounceMs: 350,
   backendUrl: 'http://localhost:3001',
 };

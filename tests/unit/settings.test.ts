@@ -12,7 +12,7 @@ describe('Grammora Settings Unit Tests', () => {
     expect(DEFAULT_SETTINGS.rewriteEnabled).toBe(true);
     expect(DEFAULT_SETTINGS.completionLength).toBe('short');
     expect(DEFAULT_SETTINGS.excludedDomains).toEqual([]);
-    expect(DEFAULT_SETTINGS.hasConsented).toBe(false);
+    expect(DEFAULT_SETTINGS.hasConsented).toBe(true);
     expect(DEFAULT_SETTINGS.debounceMs).toBe(350);
   });
 

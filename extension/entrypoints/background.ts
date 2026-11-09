@@ -75,6 +75,104 @@ export default defineBackground(() => {
             break;
           }
 
+          case 'EXECUTE_AI_ACTION': {
+            const settings = await getSettings();
+            const { text, action } = message.payload;
+            const backendUrl = settings.backendUrl || 'http://localhost:3001';
+
+            let endpoint = `${backendUrl}/api/rewrite`;
+            let bodyPayload: Record<string, any> = {
+              text,
+              requestId: `ext-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            };
+
+            if (action === 'grammar') {
+              endpoint = `${backendUrl}/api/grammar`;
+            } else if (action === 'rephrase') {
+              endpoint = `${backendUrl}/api/rewrite`;
+            } else if (['professional', 'friendly', 'concise'].includes(action)) {
+              endpoint = `${backendUrl}/api/tone`;
+              bodyPayload.mode = action;
+            }
+
+            try {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 12000);
+
+              const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyPayload),
+                signal: controller.signal,
+              });
+
+              clearTimeout(timeout);
+
+              if (res.ok) {
+                const data = await res.json();
+                sendResponse({
+                  ok: true,
+                  result: data.result,
+                  provider: data.provider,
+                  model: data.model,
+                  latencyMs: data.latencyMs,
+                });
+              } else {
+                const errData = await res.json().catch(() => ({}));
+                sendResponse({
+                  ok: false,
+                  error: errData?.error?.message || `HTTP ${res.status}`,
+                });
+              }
+            } catch (err: any) {
+              sendResponse({
+                ok: false,
+                error: err.name === 'AbortError' ? 'AI request timed out' : err.message || 'Network error',
+              });
+            }
+            break;
+          }
+
+          case 'EXECUTE_AUTOCOMPLETE': {
+            const settings = await getSettings();
+            const { text, completionLength = 'short' } = message.payload;
+            const backendUrl = settings.backendUrl || 'http://localhost:3001';
+
+            try {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 8000);
+
+              const res = await fetch(`${backendUrl}/api/autocomplete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  text,
+                  completionLength,
+                  requestId: `ac-${Date.now()}`,
+                }),
+                signal: controller.signal,
+              });
+
+              clearTimeout(timeout);
+
+              if (res.ok) {
+                const data = await res.json();
+                sendResponse({
+                  ok: true,
+                  result: data.result,
+                  provider: data.provider,
+                  model: data.model,
+                  latencyMs: data.latencyMs,
+                });
+              } else {
+                sendResponse({ ok: false, error: `HTTP ${res.status}` });
+              }
+            } catch (err: any) {
+              sendResponse({ ok: false, error: err.message });
+            }
+            break;
+          }
+
           default:
             sendResponse({ ok: false, error: 'Unknown message type' });
         }

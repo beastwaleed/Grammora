@@ -76,3 +76,4 @@ export const AutocompleteCard: React.FC<AutocompleteCardProps> = ({
     </div>
   );
 };
+

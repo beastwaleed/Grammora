@@ -1,10 +1,13 @@
 import { GrammoraSettings, getSettings, isDomainExcluded, getHostnameFromUrl } from './settings';
+import { WritingActionType } from './mock-ai';
 
 export type ExtensionMessage =
   | { type: 'GET_SETTINGS' }
   | { type: 'UPDATE_SETTINGS'; payload: Partial<GrammoraSettings> }
   | { type: 'CHECK_SITE_STATUS'; payload: { url: string } }
   | { type: 'CHECK_BACKEND_HEALTH' }
+  | { type: 'EXECUTE_AI_ACTION'; payload: { text: string; action: WritingActionType } }
+  | { type: 'EXECUTE_AUTOCOMPLETE'; payload: { text: string; completionLength?: 'short' | 'medium' } }
   | { type: 'PING' };
 
 export interface SiteStatusResponse {
@@ -18,6 +21,15 @@ export interface BackendHealthResponse {
   status: string;
   provider: string;
   version?: string;
+  error?: string;
+}
+
+export interface AIActionResponse {
+  ok: boolean;
+  result?: string;
+  provider?: string;
+  model?: string;
+  latencyMs?: number;
   error?: string;
 }
 
@@ -39,4 +51,3 @@ export async function sendToBackground<T>(message: ExtensionMessage): Promise<T>
     });
   });
 }
-
