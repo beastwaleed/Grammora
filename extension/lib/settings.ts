@@ -1,0 +1,114 @@
+export type CompletionLength = 'short' | 'medium';
+
+export interface GrammoraSettings {
+  enabled: boolean;
+  autocompleteEnabled: boolean;
+  rewriteEnabled: boolean;
+  completionLength: CompletionLength;
+  excludedDomains: string[];
+  hasConsented: boolean;
+  debounceMs: number;
+  backendUrl: string;
+}
+
+export const DEFAULT_SETTINGS: GrammoraSettings = {
+  enabled: true,
+  autocompleteEnabled: true,
+  rewriteEnabled: true,
+  completionLength: 'short',
+  excludedDomains: [],
+  hasConsented: false,
+  debounceMs: 350,
+  backendUrl: 'http://localhost:3001',
+};
+
+const STORAGE_KEY = 'grammora_settings';
+
+/**
+ * Checks if chrome.storage.local is available in the current context
+ */
+function isStorageAvailable(): boolean {
+  return typeof chrome !== 'undefined' && !!chrome.storage?.local;
+}
+
+/**
+ * Retrieves the persisted Grammora settings, merging with default values.
+ */
+export async function getSettings(): Promise<GrammoraSettings> {
+  if (!isStorageAvailable()) {
+    try {
+      const local = localStorage.getItem(STORAGE_KEY);
+      return local ? { ...DEFAULT_SETTINGS, ...JSON.parse(local) } : DEFAULT_SETTINGS;
+    } catch {
+      return DEFAULT_SETTINGS;
+    }
+  }
+
+  return new Promise((resolve) => {
+    chrome.storage.local.get([STORAGE_KEY], (result) => {
+      if (chrome.runtime.lastError || !result[STORAGE_KEY]) {
+        resolve(DEFAULT_SETTINGS);
+      } else {
+        resolve({
+          ...DEFAULT_SETTINGS,
+          ...result[STORAGE_KEY],
+        });
+      }
+    });
+  });
+}
+
+/**
+ * Persists updated settings to chrome.storage.local.
+ */
+export async function saveSettings(
+  updates: Partial<GrammoraSettings>
+): Promise<GrammoraSettings> {
+  const current = await getSettings();
+  const next: GrammoraSettings = {
+    ...current,
+    ...updates,
+  };
+
+  if (!isStorageAvailable()) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // Fallback in memory
+    }
+    return next;
+  }
+
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.set({ [STORAGE_KEY]: next }, () => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(next);
+      }
+    });
+  });
+}
+
+/**
+ * Checks if a specific hostname or domain is in the user's excluded list
+ */
+export function isDomainExcluded(hostname: string, excludedList: string[]): boolean {
+  const cleanHost = hostname.toLowerCase().trim();
+  return excludedList.some((domain) => {
+    const cleanDomain = domain.toLowerCase().trim();
+    return cleanHost === cleanDomain || cleanHost.endsWith(`.${cleanDomain}`);
+  });
+}
+
+/**
+ * Extract clean hostname from a given URL string
+ */
+export function getHostnameFromUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname;
+  } catch {
+    return url;
+  }
+}

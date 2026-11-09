@@ -1,0 +1,32 @@
+{
+  "name": "grammora-workspace",
+  "version": "0.1.0",
+  "description": "Grammora - Open-Source AI Writing Assistant",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "extension",
+    "server"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "build:extension": "npm run build --workspace=extension",
+    "dev:extension": "npm run dev --workspace=extension",
+    "compile:extension": "npm run compile --workspace=extension"
+  },
+  "keywords": [
+    "ai",
+    "chrome-extension",
+    "writing-assistant",
+    "grammar-checker",
+    "autocomplete",
+    "wxt",
+    "manifest-v3"
+  ],
+  "author": "Grammora Contributors",
+  "license": "MIT",
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "vitest": "^5.1.0"
+  }
+}

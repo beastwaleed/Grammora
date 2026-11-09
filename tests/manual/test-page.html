@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grammora Test Playground</title>
+  <style>
+    :root {
+      --color-primary: #6258E8;
+      --color-primary-hover: #5147D4;
+      --color-bg-canvas: #FFFFFF;
+      --color-bg-subtle: #F8FAFC;
+      --color-border: #E2E8F0;
+      --color-text-main: #172033;
+      --color-text-secondary: #64748B;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: var(--color-text-main);
+      background-color: var(--color-bg-subtle);
+      line-height: 1.5;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: var(--color-bg-canvas);
+      padding: 24px;
+      border-radius: 16px;
+      border: 1px solid var(--color-border);
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: #F0EEFF;
+      color: #6258E8;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-text-main);
+    }
+
+    p.subtitle {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--color-bg-canvas);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--color-border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-pill {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .status-pill.supported {
+      background: #DCFCE7;
+      color: #16A34A;
+    }
+
+    .status-pill.excluded {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+
+    .field-desc {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-bottom: 12px;
+    }
+
+    textarea, input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      color: inherit;
+      background: #FFFFFF;
+      transition: border-color 0.15s ease;
+    }
+
+    textarea:focus, input:focus, [contenteditable]:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(98, 88, 232, 0.15);
+    }
+
+    [contenteditable] {
+      min-height: 80px;
+      padding: 12px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: #FFFFFF;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button.quick-insert {
+      padding: 6px 12px;
+      background: #F1F5F9;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--color-text-main);
+      transition: background 0.15s ease;
+    }
+
+    button.quick-insert:hover {
+      background: #E2E8F0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">Verification Environment</span>
+      <h1>Grammora Editor Test Playground</h1>
+      <p class="subtitle">Use this local testing suite to verify editor detection, typing autocomplete, selection tracking, and sensitive-field security exclusions.</p>
+    </div>
+
+    <div class="grid">
+      <!-- Standard Textarea -->
+      <div class="card">
+        <div class="card-title">
+          <span>1. Standard &lt;textarea&gt;</span>
+          <span class="status-pill supported">Eligible</span>
+        </div>
+        <p class="field-desc">Primary target for paragraph editing, email drafting, and multi-sentence rewrite.</p>
+        <textarea id="sample-textarea" rows="4" placeholder="Type here or select text to test Grammora..."></textarea>
+        <div class="btn-row">
+          <button class="quick-insert" onclick="insertSample('sample-textarea', 'She don\'t knows how to use this application.')">
+            Load Grammar Error Sample
+          </button>
+          <button class="quick-insert" onclick="insertSample('sample-textarea', 'I want to know about the job you posted.')">
+            Load Tone Sample
+          </button>
+        </div>
+      </div>
+
+      <!-- Contenteditable -->
+      <div class="card">
+        <div class="card-title">
+          <span>2. ContentEditable Editor</span>
+          <span class="status-pill supported">Eligible</span>
+        </div>
+        <p class="field-desc">Simulates modern rich-text editors and blogging platforms.</p>
+        <div id="sample-contenteditable" contenteditable="true">
+          I am writing to express my enthusiams about the software engineer position.
+        </div>
+      </div>
+
+      <!-- Standard Text Input -->
+      <div class="card">
+        <div class="card-title">
+          <span>3. Single-line &lt;input type="text"&gt;</span>
+          <span class="status-pill supported">Eligible</span>
+        </div>
+        <p class="field-desc">Form field for titles, subject lines, or short search descriptions.</p>
+        <input type="text" id="sample-input" placeholder="Subject line / title...">
+      </div>
+
+      <!-- Password Input -->
+      <div class="card">
+        <div class="card-title">
+          <span>4. Sensitive Password Field</span>
+          <span class="status-pill excluded">Excluded</span>
+        </div>
+        <p class="field-desc">Must never trigger Grammora UI, autocomplete, or text extraction.</p>
+        <input type="password" id="sample-password" value="SuperSecretPassword123!">
+      </div>
+
+      <!-- Credit Card Field -->
+      <div class="card">
+        <div class="card-title">
+          <span>5. Payment Card Field (autocomplete="cc-number")</span>
+          <span class="status-pill excluded">Excluded</span>
+        </div>
+        <p class="field-desc">Must be strictly ignored by privacy heuristics.</p>
+        <input type="text" id="sample-cc" autocomplete="cc-number" placeholder="4532 •••• •••• 8892">
+      </div>
+
+      <!-- Explicit Ignore Field -->
+      <div class="card">
+        <div class="card-title">
+          <span>6. Explicit Ignore (data-grammora-ignore="true")</span>
+          <span class="status-pill excluded">Excluded</span>
+        </div>
+        <p class="field-desc">Developer opt-out tag completely bypasses Grammora.</p>
+        <textarea data-grammora-ignore="true" rows="2" placeholder="This editor is explicitly ignored..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function insertSample(id, text) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.value = text;
+        el.focus();
+        el.setSelectionRange(0, text.length);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  </script>
+</body>
+</html>

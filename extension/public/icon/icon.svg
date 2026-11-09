@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <!-- Rounded Squircle Background -->
+  <rect width="128" height="128" rx="28" fill="#6258E8"/>
+  
+  <!-- Stylized G Monogram -->
+  <path d="M 84 46 C 78 36 67 32 56 32 C 40.5 32 28 44.5 28 60 C 28 75.5 40.5 88 56 88 C 70 88 81 78.5 84 66 L 56 66" 
+        stroke="#FFFFFF" 
+        stroke-width="12" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+        
+  <!-- Pen Nib Angle Indicator -->
+  <path d="M 84 66 L 84 80" 
+        stroke="#FFFFFF" 
+        stroke-width="12" 
+        stroke-linecap="round"/>
+
+  <!-- AI Sparkle Diamond -->
+  <path d="M 98 18 Q 98 30 110 30 Q 98 30 98 42 Q 98 30 86 30 Q 98 30 98 18 Z" 
+        fill="#FFFFFF"/>
+</svg>
