@@ -123,7 +123,36 @@ export function calculateFloatingPosition(
   if (element.isContentEditable) {
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
-      const rangeRect = sel.getRangeAt(0).getBoundingClientRect();
+      const range = sel.getRangeAt(0);
+      let rangeRect = range.getBoundingClientRect();
+
+      // In Chrome contenteditable, collapsed ranges frequently return (0, 0, 0, 0)
+      if (rangeRect.width === 0 && rangeRect.height === 0 && rangeRect.left === 0 && rangeRect.top === 0) {
+        const clientRects = range.getClientRects();
+        if (clientRects.length > 0) {
+          rangeRect = clientRects[clientRects.length - 1];
+        }
+      }
+
+      // If still zero, temporarily insert zero-width marker to calculate precise cursor rect
+      if (rangeRect.width === 0 && rangeRect.height === 0 && rangeRect.left === 0 && rangeRect.top === 0) {
+        try {
+          const marker = document.createElement('span');
+          marker.textContent = '\u200B';
+          const clonedRange = range.cloneRange();
+          clonedRange.insertNode(marker);
+          rangeRect = marker.getBoundingClientRect();
+          marker.parentNode?.removeChild(marker);
+        } catch {
+          rangeRect = element.getBoundingClientRect();
+        }
+      }
+
+      // Fallback if measurement failed
+      if (rangeRect.left === 0 && rangeRect.top === 0) {
+        rangeRect = element.getBoundingClientRect();
+      }
+
       targetTop = rangeRect.bottom;
       targetLeft = rangeRect.left;
       targetHeight = rangeRect.height || 20;

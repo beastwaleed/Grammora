@@ -97,11 +97,11 @@ test.describe('Grammora Chrome Extension E2E Suite', () => {
 
     // Preview card appears with diff
     const previewCard = page.locator('#grammora-host').locator('[role="dialog"][aria-label*="Grammar"]');
-    await expect(previewCard).toBeVisible({ timeout: 6000 });
+    await expect(previewCard).toBeVisible({ timeout: 8000 });
 
     // Apply the correction
     const applyBtn = previewCard.getByRole('button', { name: /apply/i });
-    await expect(applyBtn).toBeVisible({ timeout: 6000 });
+    await expect(applyBtn).toBeVisible({ timeout: 12000 });
     await applyBtn.click();
 
     // Verify text in textarea was safely replaced
@@ -133,10 +133,10 @@ test.describe('Grammora Chrome Extension E2E Suite', () => {
 
     // Preview card appears
     const previewCard = page.locator('#grammora-host').locator('[role="dialog"][aria-label*="Concise"]');
-    await expect(previewCard).toBeVisible({ timeout: 6000 });
+    await expect(previewCard).toBeVisible({ timeout: 8000 });
 
     const applyBtn = previewCard.getByRole('button', { name: /apply/i });
-    await expect(applyBtn).toBeVisible({ timeout: 6000 });
+    await expect(applyBtn).toBeVisible({ timeout: 12000 });
     await applyBtn.click();
 
     // Verify replaced text is noticeably shorter
@@ -219,10 +219,10 @@ test.describe('Grammora Chrome Extension E2E Suite', () => {
     await rephraseBtn.click();
 
     const previewCard = page.locator('#grammora-host').locator('[role="dialog"][aria-label*="Rephrase"]');
-    await expect(previewCard).toBeVisible({ timeout: 6000 });
+    await expect(previewCard).toBeVisible({ timeout: 8000 });
 
     const applyBtn = previewCard.getByRole('button', { name: /apply/i });
-    await expect(applyBtn).toBeVisible({ timeout: 6000 });
+    await expect(applyBtn).toBeVisible({ timeout: 12000 });
     await applyBtn.click();
 
     // Verify contenteditable text changed

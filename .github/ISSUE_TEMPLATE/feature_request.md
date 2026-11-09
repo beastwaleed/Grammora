@@ -21,3 +21,4 @@ How should this feature appear in Grammora's interface (popup, floating toolbar,
 
 **Additional context**
 Add any other context, screenshots, or mockups about the feature request here.
+

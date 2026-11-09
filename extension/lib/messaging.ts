@@ -34,20 +34,37 @@ export interface AIActionResponse {
 }
 
 /**
+ * Checks whether the Chrome extension runtime context is valid and active.
+ * When an extension is reloaded or updated in chrome://extensions, old content
+ * scripts become orphaned and accessing chrome.runtime.id throws or returns undefined.
+ */
+export function isExtensionContextValid(): boolean {
+  try {
+    return typeof chrome !== 'undefined' && !!chrome?.runtime && !!chrome.runtime.id;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Sends a typed message to the background service worker
  */
 export async function sendToBackground<T>(message: ExtensionMessage): Promise<T> {
-  if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) {
-    throw new Error('Chrome runtime messaging is not available');
+  if (!isExtensionContextValid() || !chrome.runtime?.sendMessage) {
+    throw new Error('Extension context invalidated. Please refresh the page to reconnect Grammora.');
   }
 
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-      } else {
-        resolve(response);
-      }
-    });
+    try {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
+        }
+      });
+    } catch (err: any) {
+      reject(err);
+    }
   });
 }

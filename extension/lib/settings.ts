@@ -25,10 +25,14 @@ export const DEFAULT_SETTINGS: GrammoraSettings = {
 const STORAGE_KEY = 'grammora_settings';
 
 /**
- * Checks if chrome.storage.local is available in the current context
+ * Checks if chrome.storage.local is available and the extension context is valid
  */
 function isStorageAvailable(): boolean {
-  return typeof chrome !== 'undefined' && !!chrome.storage?.local;
+  try {
+    return typeof chrome !== 'undefined' && !!chrome?.runtime?.id && !!chrome?.storage?.local;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -45,20 +49,24 @@ export async function getSettings(): Promise<GrammoraSettings> {
   }
 
   return new Promise((resolve) => {
-    chrome.storage.local.get([STORAGE_KEY], (result) => {
-      if (chrome.runtime.lastError || !result[STORAGE_KEY]) {
-        resolve(DEFAULT_SETTINGS);
-      } else {
-        const stored = result[STORAGE_KEY];
-        // Ensure cloud AI hasConsented is true by default for live Groq/Gemini processing
-        const hasConsented = stored.hasConsented !== false;
-        resolve({
-          ...DEFAULT_SETTINGS,
-          ...stored,
-          hasConsented,
-        });
-      }
-    });
+    try {
+      chrome.storage.local.get([STORAGE_KEY], (result) => {
+        if (chrome.runtime?.lastError || !result || !result[STORAGE_KEY]) {
+          resolve(DEFAULT_SETTINGS);
+        } else {
+          const stored = result[STORAGE_KEY];
+          // Ensure cloud AI hasConsented is true by default for live Groq/Gemini processing
+          const hasConsented = stored.hasConsented !== false;
+          resolve({
+            ...DEFAULT_SETTINGS,
+            ...stored,
+            hasConsented,
+          });
+        }
+      });
+    } catch {
+      resolve(DEFAULT_SETTINGS);
+    }
   });
 }
 

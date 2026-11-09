@@ -7,6 +7,7 @@ import { captureSelectionSnapshot, SelectionSnapshot } from '../adapters/replace
 import { AutocompleteEngine, AutocompleteSuggestion } from '../adapters/autocomplete';
 import { FloatingWritingCompanion } from '../components/FloatingWritingCompanion';
 import { AutocompleteCard } from '../components/AutocompleteCard';
+import { isExtensionContextValid } from '../lib/messaging';
 // @ts-ignore - Vite inline CSS import
 import globalCss from '../styles/globals.css?inline';
 
@@ -22,11 +23,26 @@ export default defineContentScript({
     let reactRoot: ReactDOM.Root | null = null;
     let shadowContainer: HTMLElement | null = null;
     let shadowRoot: ShadowRoot | null = null;
+    let isOrphaned = false;
+
+    function checkContext(): boolean {
+      if (isOrphaned) return false;
+      if (!isExtensionContextValid()) {
+        isOrphaned = true;
+        detachEventListeners();
+        console.warn(
+          '[Grammora] Extension was updated or reloaded in Chrome. Please refresh this tab (F5) to re-enable Grammora.'
+        );
+        return false;
+      }
+      return true;
+    }
 
     console.log('[Grammora Content] Initializing on:', window.location.hostname);
 
     async function initialize() {
       try {
+        if (!checkContext()) return;
         settings = await getSettings();
 
         // Check if master toggle is disabled or site is excluded
@@ -139,7 +155,22 @@ export default defineContentScript({
       document.addEventListener('selectionchange', handleSelectionChange);
     }
 
+    function detachEventListeners() {
+      document.removeEventListener('focusin', handleFocusIn, true);
+      document.removeEventListener('focusout', handleFocusOut, true);
+      document.removeEventListener('input', handleInput, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
+      document.removeEventListener('mouseup', handleSelectionUpdate);
+      document.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('selectionchange', handleSelectionChange);
+
+      if (shadowContainer && shadowContainer.parentNode) {
+        shadowContainer.parentNode.removeChild(shadowContainer);
+      }
+    }
+
     function handleFocusIn(event: FocusEvent) {
+      if (!checkContext()) return;
       const inspected = inspectEditor(event.target);
       if (inspected && inspected.isEligible) {
         activeEditor = inspected;
@@ -165,6 +196,7 @@ export default defineContentScript({
     }
 
     function handleInput(event: Event) {
+      if (!checkContext()) return;
       if (!settings || !settings.enabled || !settings.autocompleteEnabled) return;
 
       const target = event.target;
@@ -225,6 +257,7 @@ export default defineContentScript({
     }
 
     function handleSelectionUpdate() {
+      if (!checkContext()) return;
       if (!settings || !settings.enabled) return;
 
       if (!activeEditor) {

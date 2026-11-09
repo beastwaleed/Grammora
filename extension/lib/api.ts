@@ -1,5 +1,5 @@
 import { getSettings } from './settings';
-import { sendToBackground, AIActionResponse } from './messaging';
+import { sendToBackground, AIActionResponse, isExtensionContextValid } from './messaging';
 import { mockAIRequest, WritingActionType } from './mock-ai';
 
 export interface AIActionResult {
@@ -22,7 +22,7 @@ export async function executeAIAction(
   const start = Date.now();
 
   // 1. Dispatch via background service worker (exempt from webpage CORS & Mixed-Content)
-  if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+  if (isExtensionContextValid() && chrome.runtime?.sendMessage) {
     try {
       const response = await sendToBackground<AIActionResponse>({
         type: 'EXECUTE_AI_ACTION',
@@ -40,7 +40,11 @@ export async function executeAIAction(
 
       console.warn('[Grammora API] Background gateway returned non-ok:', response?.error);
     } catch (err: any) {
-      console.warn('[Grammora API] Background messaging failed:', err.message);
+      if (err.message && err.message.includes('context invalidated')) {
+        console.warn('[Grammora API] Extension context was invalidated. Refresh the page to reconnect.');
+      } else {
+        console.warn('[Grammora API] Background messaging failed:', err.message);
+      }
       // Fall through to direct fetch fallback
     }
   }

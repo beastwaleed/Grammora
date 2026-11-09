@@ -9,6 +9,7 @@
     "server"
   ],
   "scripts": {
+    "build": "npm run build:server && npm run build:extension",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:all": "npm run test && npm run test:e2e",

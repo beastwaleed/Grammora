@@ -1,6 +1,7 @@
 import { inspectEditor, getPrecedingContext, PrecedingContextInfo } from './editor';
 import { calculateFloatingPosition, FloatingPosition } from './coordinates';
 import { getSettings, GrammoraSettings } from '../lib/settings';
+import { isExtensionContextValid } from '../lib/messaging';
 
 export interface AutocompleteSuggestion {
   requestId: string;
@@ -81,6 +82,10 @@ export class AutocompleteEngine {
   }
 
   private async triggerAutocomplete(el: HTMLElement, settings: GrammoraSettings) {
+    if (!isExtensionContextValid()) {
+      return;
+    }
+
     const inspected = inspectEditor(el);
     if (!inspected || !inspected.isEligible) return;
 
@@ -101,19 +106,34 @@ export class AutocompleteEngine {
     let requestId = `ac-${Date.now()}-${seq}`;
 
     try {
-      if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
-        const bgRes = await new Promise<any>((resolve) => {
-          chrome.runtime.sendMessage(
-            {
-              type: 'EXECUTE_AUTOCOMPLETE',
-              payload: {
-                text: preceding.text,
-                completionLength: settings.completionLength || 'short',
-              },
-            },
-            (response) => resolve(response)
-          );
-        });
+      if (typeof chrome !== 'undefined' && chrome.runtime?.id && chrome.runtime?.sendMessage) {
+        let bgRes: any = null;
+        try {
+          bgRes = await new Promise<any>((resolve) => {
+            try {
+              chrome.runtime.sendMessage(
+                {
+                  type: 'EXECUTE_AUTOCOMPLETE',
+                  payload: {
+                    text: preceding.text,
+                    completionLength: settings.completionLength || 'short',
+                  },
+                },
+                (response) => {
+                  if (chrome.runtime?.lastError) {
+                    resolve(null);
+                  } else {
+                    resolve(response);
+                  }
+                }
+              );
+            } catch {
+              resolve(null);
+            }
+          });
+        } catch {
+          return;
+        }
 
         if (bgRes && bgRes.ok && bgRes.result) {
           completionText = bgRes.result;
@@ -174,6 +194,10 @@ export class AutocompleteEngine {
       this.onSuggestionChange(suggestion);
     } catch (err: any) {
       if (err.name !== 'AbortError') {
+        const msg = err.message || '';
+        if (msg.includes('context invalidated')) {
+          return;
+        }
         console.warn('[Grammora Autocomplete] Request error:', err.message);
       }
     }
