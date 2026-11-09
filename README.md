@@ -32,6 +32,129 @@
 
 ---
 
+## 📖 How to Use Grammora (Step-by-Step User Guide)
+
+### 📌 1. Pin the Extension
+After loading the extension in Chrome:
+1. Click the **Puzzle Piece icon (Extensions)** in the top-right of your Chrome toolbar.
+2. Find **Grammora** and click the **Pin icon** (`📌`) to keep it visible in your toolbar.
+3. Click the Grammora icon to open the popup:
+   - Verify that **"Enable Grammora"** is toggled ON.
+   - Check the **AI Service** status pill at the bottom (shows `Live AI Connected` when the backend is running).
+
+---
+
+### ⚡ 2. Real-Time Predictive Autocomplete (As You Type)
+
+Grammora predicts the next words or finishes your sentences in real-time as you write in any text box, textarea, or contenteditable editor.
+
+#### Workflow:
+1. **Type naturally:** Start typing inside any supported text field (e.g., `"I am looking for"`).
+2. **Pause for ~350ms:** A sleek, non-intrusive autocomplete pill will appear directly next to your text cursor:
+   ```
+   ┌────────────────────────────────────────────────────────┐
+   │ ✨ a new apartment in the downtown area.    [Tab ↵] [✕] │
+   └────────────────────────────────────────────────────────┘
+   ```
+3. **Accept the suggestion:**
+   - Press the **`Tab`** key on your keyboard, OR
+   - Click directly on the suggestion card.
+   - Grammora will cleanly insert the suggested text with proper word boundary spacing.
+4. **Dismiss the suggestion:**
+   - Press **`Escape`**, OR
+   - Continue typing your own text, OR
+   - Move the cursor using your arrow keys (`←`, `→`, `↑`, `↓`).
+
+> [!TIP]
+> **Adjusting Completion Length:**
+> Open the Grammora extension popup to choose between **Short** (~3–6 words, perfect for quick phrasing) and **Medium** (~10–18 words, great for full sentence continuations).
+
+---
+
+### 🪄 3. Text Selection & Floating Writing Toolbar
+
+Whenever you need to proofread, rephrase, or change the tone of existing writing:
+
+#### Workflow:
+1. **Highlight text:** Select any sentence, paragraph, or phrase ($\ge 3$ characters) with your mouse or keyboard shortcut (`Shift + Arrow keys`).
+2. **Click the Floating Pen:** A subtle purple pen icon with a pulsing badge appears right near your selection:
+   ```
+   ┌─────┐
+   │ ✍️ • │
+   └─────┘
+   ```
+3. **Choose an Action from the Toolbar:**
+   Clicking the pen opens the expanded Grammora writing toolbar:
+   ```
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │ [G] │ [✨ Fix Grammar] [🔄 Rephrase] [💼 Professional] [😊 Friendly] [⚡ Concise] │ [✕] │
+   └─────────────────────────────────────────────────────────────────────────┘
+   ```
+
+#### Available Writing Modes:
+| Action | Purpose | Example Input | AI Output |
+| :--- | :--- | :--- | :--- |
+| **✨ Fix Grammar** | Eliminates spelling errors, typos, punctuation issues, and wrong verb agreements. | *"this sentence have some typo and grammer mistake"* | *"This sentence has some typos and grammar mistakes."* |
+| **🔄 Rephrase** | Elevates fluency, vocabulary, and rhythm without altering factual details. | *"I want to know about the job you posted."* | *"I would like to inquire about the job opportunity you recently advertised."* |
+| **💼 Professional** | Converts casual notes into polished, formal business correspondence. | *"hey can u send the report asap"* | *"Could you please forward the report at your earliest convenience?"* |
+| **😊 Friendly** | Infuses warm, conversational, and approachable energy into your message. | *"Please review the document."* | *"I'd really appreciate it if you could take a quick look at this document!"* |
+| **⚡ Concise** | Strips unnecessary preambles, redundancies, and filler words. | *"In my personal opinion, I really think that it is very important that we must remember to consider this option"* | *"Consider this option; it may help."* |
+
+---
+
+### 🔍 4. Reviewing with the Diff Preview Card
+
+Grammora never silently overwrites your text. Every transformation is presented in an interactive preview card for your review:
+
+```
+┌───────────────────────────────────────────────┐
+│ 🪄 Grammar Correction                     [✕] │
+├───────────────────────────────────────────────┤
+│ ORIGINAL                                      │
+│ ~~this sentence have some typo and grammer~~  │
+│                                               │
+│ SUGGESTION                        Ready to apply │
+│ This sentence has some typos and grammar      │
+│ mistakes.                                     │
+├───────────────────────────────────────────────┤
+│ [🔄 Regenerate (R)]         [Dismiss Esc] [✅ Apply ↵] │
+└───────────────────────────────────────────────┘
+```
+
+#### Keyboard Shortcuts in Preview:
+- **`Enter` (`↵`):** Immediately applies the suggested replacement into your editor.
+- **`Escape` (`Esc`):** Dismisses the preview and preserves your original text completely untouched.
+- **`R`:** Instantly regenerates a new suggestion from the AI model.
+- **Undo Anytime (`Ctrl+Z` / `Cmd+Z`):** Native editor undo history is strictly preserved, so you can reverse any applied change at any time.
+
+---
+
+### ⚙️ 5. Managing Website Exclusions & Settings
+
+Click the Grammora icon in the Chrome extension bar to customize behavior:
+- **Master Switch:** Instantly turn Grammora ON or OFF across the entire browser.
+- **Per-Site Exclusion:** Click **"Active on Site"** to toggle the current domain (e.g. disable on bank portals, intranet sites, or specific web apps).
+- **Independent Feature Toggles:** Disable **Smart Autocomplete** while keeping the **Writing Toolbar** active, or vice versa.
+- **Preferences Modal (`⚙️`):**
+  - Configure typing pause debounce (default: `350ms`).
+  - View and manage your complete list of excluded domains.
+  - Customize the backend gateway endpoint URL (default: `http://localhost:3001`).
+
+---
+
+### 🛡️ 6. Privacy & Sensitive Field Protection
+
+Grammora is designed with zero-trust privacy principles:
+- **Protected Fields:** Grammora automatically deactivates and suppresses autocomplete and toolbars on:
+  - 🔒 Password inputs (`<input type="password">`).
+  - 💳 Credit card / CVV fields (`autocomplete="cc-number"`, `cc-csc`, `cc-exp`).
+  - 🔑 One-Time Passcodes (OTP) and sensitive verification tokens.
+  - 🚫 Developer-excluded elements containing `data-grammora-ignore="true"`.
+- **Zero Keystroke Telemetry:** Text is never streamed key-by-key. Only bounded snippets ($\le 250$ chars) preceding your caret are sent after you pause typing.
+- **Stateless Backend:** Your writing is never logged, stored in databases, or used for model training.
+
+---
+
 ## 🏗️ Architecture & Technology Stack
 
 ```

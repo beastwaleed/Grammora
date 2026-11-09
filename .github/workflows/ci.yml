@@ -1,0 +1,48 @@
+name: Grammora CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build Express server
+        run: npm run build:server
+
+      - name: Build Chrome MV3 extension
+        run: npm run build:extension
+
+      - name: Run Vitest Unit & API Tests
+        run: npm run test
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Server in Background for E2E
+        run: |
+          node server/dist/index.js &
+          sleep 3
+        env:
+          PORT: 3001
+          AI_PROVIDER: mock
+          NODE_ENV: test
+
+      - name: Run Playwright Browser E2E Tests
+        run: npm run test:e2e
