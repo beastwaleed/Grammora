@@ -78,7 +78,7 @@ export default defineBackground(() => {
           case 'EXECUTE_AI_ACTION': {
             const settings = await getSettings();
             const { text, action } = message.payload;
-            const backendUrl = settings.backendUrl || 'http://localhost:3001';
+            const backendUrl = settings.backendUrl || 'https://grammora-omega.vercel.app';
 
             let endpoint = `${backendUrl}/api/rewrite`;
             let bodyPayload: Record<string, any> = {
@@ -136,7 +136,7 @@ export default defineBackground(() => {
           case 'EXECUTE_AUTOCOMPLETE': {
             const settings = await getSettings();
             const { text, completionLength = 'short' } = message.payload;
-            const backendUrl = settings.backendUrl || 'http://localhost:3001';
+            const backendUrl = settings.backendUrl || 'https://grammora-omega.vercel.app';
 
             try {
               const controller = new AbortController();

@@ -699,6 +699,23 @@ function createApp() {
     })
   );
   app2.use(express.json({ limit: "1mb" }));
+  app2.get("/", (_req, res) => {
+    res.json({
+      ok: true,
+      service: "Grammora AI Gateway",
+      version: "0.1.0",
+      status: "online",
+      message: "Grammora AI Gateway is running smoothly on Vercel.",
+      endpoints: {
+        health: "/api/health",
+        grammar: "/api/grammar",
+        rewrite: "/api/rewrite",
+        tone: "/api/tone",
+        autocomplete: "/api/autocomplete"
+      },
+      repository: "https://github.com/beastwaleed/Grammora"
+    });
+  });
   app2.use("/api", apiRateLimiter);
   app2.use("/api", health_default);
   const testPagePath = path.resolve(process.cwd(), "tests/manual");

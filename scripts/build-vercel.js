@@ -10,5 +10,6 @@ if (!fs.existsSync('api')) {
   fs.mkdirSync('api');
 }
 fs.copyFileSync('index.js', 'api/index.js');
+fs.copyFileSync('index.js', 'api/[...path].js');
 
-console.log('✅ Vercel entrypoints generated successfully: index.js, app.js, api/index.js');
+console.log('✅ Vercel entrypoints generated successfully: index.js, app.js, api/index.js, api/[...path].js');

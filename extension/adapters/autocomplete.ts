@@ -104,7 +104,7 @@ export class AutocompleteEngine {
     const revision = this.currentRevision;
 
     this.abortController = new AbortController();
-    const backendUrl = settings.backendUrl || 'http://localhost:3001';
+    const backendUrl = settings.backendUrl || 'https://grammora-omega.vercel.app';
 
     let completionText = '';
     let requestId = `ac-${Date.now()}-${seq}`;

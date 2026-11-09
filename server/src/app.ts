@@ -41,6 +41,25 @@ export function createApp(): Express {
   // Body parser with size limits
   app.use(express.json({ limit: '1mb' }));
 
+  // Root status endpoint
+  app.get('/', (_req, res) => {
+    res.json({
+      ok: true,
+      service: 'Grammora AI Gateway',
+      version: '0.1.0',
+      status: 'online',
+      message: 'Grammora AI Gateway is running smoothly on Vercel.',
+      endpoints: {
+        health: '/api/health',
+        grammar: '/api/grammar',
+        rewrite: '/api/rewrite',
+        tone: '/api/tone',
+        autocomplete: '/api/autocomplete',
+      },
+      repository: 'https://github.com/beastwaleed/Grammora',
+    });
+  });
+
   // Global rate limiter
   app.use('/api', apiRateLimiter);
 

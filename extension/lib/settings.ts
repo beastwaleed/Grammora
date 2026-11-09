@@ -19,7 +19,7 @@ export const DEFAULT_SETTINGS: GrammoraSettings = {
   excludedDomains: [],
   hasConsented: true,
   debounceMs: 350,
-  backendUrl: 'http://localhost:3001',
+  backendUrl: 'https://grammora-omega.vercel.app',
 };
 
 const STORAGE_KEY = 'grammora_settings';

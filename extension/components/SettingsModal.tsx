@@ -73,7 +73,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               type="url"
               value={backendUrl}
               onChange={(e) => setBackendUrl(e.target.value)}
-              placeholder="http://localhost:3001"
+              placeholder="https://grammora-omega.vercel.app"
               className="w-full px-2.5 py-1.5 border border-surface-border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
             <p className="text-[11px] text-content-muted">

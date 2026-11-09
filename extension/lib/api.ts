@@ -50,7 +50,7 @@ export async function executeAIAction(
   }
 
   // 3. Direct fetch fallback (for local development/test environments)
-  const backendUrl = settings.backendUrl || 'http://localhost:3001';
+  const backendUrl = settings.backendUrl || 'https://grammora-omega.vercel.app';
   let endpoint = `${backendUrl}/api/rewrite`;
   let bodyPayload: Record<string, any> = {
     text,
