@@ -71,11 +71,10 @@ Grammora predicts the next words or finishes your sentences in real-time as you 
 #### Workflow:
 1. **Type naturally:** Start typing inside any supported text field (e.g., `"I am looking for"`).
 2. **Pause for ~350ms:** A sleek, non-intrusive autocomplete pill will appear directly next to your text cursor:
-   ```
-   ┌────────────────────────────────────────────────────────┐
-   │ ✨ a new apartment in the downtown area.    [Tab ↵] [✕] │
-   └────────────────────────────────────────────────────────┘
-   ```
+
+   <p align="center">
+     <img src="docs/assets/workflow-autocomplete.png" alt="Grammora Predictive Autocomplete Workflow" width="720" />
+   </p>
 3. **Accept the suggestion:**
    - Press the **`Tab`** key on your keyboard, OR
    - Click directly on the suggestion card.
@@ -98,18 +97,16 @@ Whenever you need to proofread, rephrase, or change the tone of existing writing
 #### Workflow:
 1. **Highlight text:** Select any sentence, paragraph, or phrase ($\ge 3$ characters) with your mouse or keyboard shortcut (`Shift + Arrow keys`).
 2. **Click the Floating Pen:** A subtle purple pen icon with a pulsing badge appears right near your selection:
-   ```
-   ┌─────┐
-   │ ✍️ • │
-   └─────┘
-   ```
+
+   <p align="center">
+     <img src="docs/assets/workflow-selection-pill.png" alt="Grammora Floating Pen Pill on Text Selection" width="720" />
+   </p>
 3. **Choose an Action from the Toolbar:**
    Clicking the pen opens the expanded Grammora writing toolbar:
-   ```
-   ┌─────────────────────────────────────────────────────────────────────────┐
-   │ [G] │ [✨ Fix Grammar] [🔄 Rephrase] [💼 Professional] [😊 Friendly] [⚡ Concise] │ [✕] │
-   └─────────────────────────────────────────────────────────────────────────┘
-   ```
+
+   <p align="center">
+     <img src="docs/assets/workflow-toolbar.png" alt="Grammora Unified Writing Toolbar" width="720" />
+   </p>
 
 #### Available Writing Modes:
 | Action | Purpose | Example Input | AI Output |
@@ -126,20 +123,9 @@ Whenever you need to proofread, rephrase, or change the tone of existing writing
 
 Grammora never silently overwrites your text. Every transformation is presented in an interactive preview card for your review:
 
-```
-┌───────────────────────────────────────────────┐
-│ 🪄 Grammar Correction                     [✕] │
-├───────────────────────────────────────────────┤
-│ ORIGINAL                                      │
-│ ~~this sentence have some typo and grammer~~  │
-│                                               │
-│ SUGGESTION                        Ready to apply │
-│ This sentence has some typos and grammar      │
-│ mistakes.                                     │
-├───────────────────────────────────────────────┤
-│ [🔄 Regenerate (R)]         [Dismiss Esc] [✅ Apply ↵] │
-└───────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="docs/assets/workflow-diff-preview.png" alt="Grammora Diff Preview Card" width="580" />
+</p>
 
 #### Keyboard Shortcuts in Preview:
 - **`Enter` (`↵`):** Immediately applies the suggested replacement into your editor.
