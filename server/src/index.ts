@@ -1,3 +1,4 @@
+import './dotenv-init.js';
 import { createApp } from './app.js';
 import { providerManager } from './providers/manager.js';
 
@@ -14,3 +15,4 @@ app.listen(PORT, () => {
   console.log(`  Health Endpoint : http://localhost:${PORT}/api/health`);
   console.log(`==================================================\n`);
 });
+

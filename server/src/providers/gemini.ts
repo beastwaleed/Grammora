@@ -11,11 +11,22 @@ export class GeminiProvider implements AIProvider {
     this.model = model || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
   }
 
+  private getApiKey(): string {
+    return this.apiKey || process.env.GEMINI_API_KEY || '';
+  }
+
+  private getModel(): string {
+    return this.model || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  }
+
   isConfigured(): boolean {
-    return !!this.apiKey && this.apiKey.trim().length > 0 && !this.apiKey.includes('replace-with');
+    const key = this.getApiKey();
+    return !!key && key.trim().length > 0 && !key.includes('replace-with');
   }
 
   async generate(params: GenerateParams): Promise<GenerateResult> {
+    const apiKey = this.getApiKey();
+    const model = this.getModel();
     if (!this.isConfigured()) {
       throw new Error('Gemini API key is not configured');
     }
@@ -24,7 +35,7 @@ export class GeminiProvider implements AIProvider {
     const timeoutMs = params.timeoutMs || Number(process.env.REQUEST_TIMEOUT_MS) || 12000;
     const start = Date.now();
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -94,3 +105,4 @@ export class GeminiProvider implements AIProvider {
     }
   }
 }
+

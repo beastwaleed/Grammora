@@ -33,3 +33,4 @@ export interface ProviderErrorDetails {
   provider?: string;
   status?: number;
 }
+

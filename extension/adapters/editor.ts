@@ -182,3 +182,61 @@ export function getActiveSelection(el: HTMLElement): SelectionRangeInfo | null {
   return null;
 }
 
+export interface PrecedingContextInfo {
+  text: string;
+  caretOffset: number;
+  fullPrecedingText: string;
+}
+
+/**
+ * Extracts bounded context preceding the cursor (max 250 characters).
+ * Returns null if the caret is not collapsed or has no meaningful context.
+ */
+export function getPrecedingContext(
+  el: HTMLElement,
+  maxChars: number = 250
+): PrecedingContextInfo | null {
+  if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    // Autocomplete only triggers when caret is collapsed (no active selection)
+    if (start !== end) return null;
+
+    const fullPrecedingText = el.value.slice(0, end);
+    if (!fullPrecedingText.trim()) return null;
+
+    const boundedText = fullPrecedingText.slice(-maxChars);
+    return {
+      text: boundedText,
+      caretOffset: end,
+      fullPrecedingText,
+    };
+  }
+
+  if (el.isContentEditable) {
+    const sel = window.getSelection();
+    if (!sel || !sel.isCollapsed || sel.rangeCount === 0) return null;
+
+    try {
+      const range = sel.getRangeAt(0);
+      const preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(el);
+      preCaretRange.setEnd(range.endContainer, range.endOffset);
+
+      const fullPrecedingText = preCaretRange.toString();
+      if (!fullPrecedingText.trim()) return null;
+
+      const boundedText = fullPrecedingText.slice(-maxChars);
+      return {
+        text: boundedText,
+        caretOffset: fullPrecedingText.length,
+        fullPrecedingText,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+

@@ -9,14 +9,25 @@ export class GroqProvider implements AIProvider {
 
   constructor(apiKey?: string, model?: string) {
     this.apiKey = apiKey || process.env.GROQ_API_KEY || '';
-    this.model = model || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    this.model = model || process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
+  }
+
+  private getApiKey(): string {
+    return this.apiKey || process.env.GROQ_API_KEY || '';
+  }
+
+  private getModel(): string {
+    return this.model || process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
   }
 
   isConfigured(): boolean {
-    return !!this.apiKey && this.apiKey.trim().length > 0 && !this.apiKey.includes('replace-with');
+    const key = this.getApiKey();
+    return !!key && key.trim().length > 0 && !key.includes('replace-with');
   }
 
   async generate(params: GenerateParams): Promise<GenerateResult> {
+    const apiKey = this.getApiKey();
+    const model = this.getModel();
     if (!this.isConfigured()) {
       throw new Error('Groq API key is not configured');
     }
@@ -32,11 +43,11 @@ export class GroqProvider implements AIProvider {
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: this.model,
+          model,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
@@ -91,3 +102,4 @@ export class GroqProvider implements AIProvider {
     }
   }
 }
+

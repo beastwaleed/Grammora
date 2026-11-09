@@ -4,7 +4,9 @@ import ReactDOM from 'react-dom/client';
 import { getSettings, isDomainExcluded, GrammoraSettings } from '../lib/settings';
 import { inspectEditor, EditorInfo, getActiveSelection } from '../adapters/editor';
 import { captureSelectionSnapshot, SelectionSnapshot } from '../adapters/replacement';
+import { AutocompleteEngine, AutocompleteSuggestion } from '../adapters/autocomplete';
 import { FloatingWritingCompanion } from '../components/FloatingWritingCompanion';
+import { AutocompleteCard } from '../components/AutocompleteCard';
 // @ts-ignore - Vite inline CSS import
 import globalCss from '../styles/globals.css?inline';
 
@@ -15,11 +17,13 @@ export default defineContentScript({
     let settings: GrammoraSettings | null = null;
     let activeEditor: EditorInfo | null = null;
     let activeSnapshot: SelectionSnapshot | null = null;
+    let activeSuggestion: AutocompleteSuggestion | null = null;
+    let autocompleteEngine: AutocompleteEngine | null = null;
     let reactRoot: ReactDOM.Root | null = null;
     let shadowContainer: HTMLElement | null = null;
     let shadowRoot: ShadowRoot | null = null;
 
-    console.log('[Grammora Content] Initializing content script on:', window.location.hostname);
+    console.log('[Grammora Content] Initializing on:', window.location.hostname);
 
     async function initialize() {
       try {
@@ -37,9 +41,15 @@ export default defineContentScript({
           return;
         }
 
+        // Initialize autocomplete engine with reactive callback
+        autocompleteEngine = new AutocompleteEngine((suggestion) => {
+          activeSuggestion = suggestion;
+          renderUI();
+        });
+
         setupShadowDOM();
         attachEventListeners();
-        console.log('[Grammora Content] Ready and listening for editor selections.');
+        console.log('[Grammora Content] Ready for typing autocomplete and selection rewriting.');
       } catch (err) {
         console.error('[Grammora Content] Initialization error:', err);
       }
@@ -84,6 +94,7 @@ export default defineContentScript({
 
       reactRoot.render(
         <React.StrictMode>
+          {/* Phase 2/3 Selection Companion */}
           <FloatingWritingCompanion
             snapshot={activeSnapshot}
             onClose={() => {
@@ -91,17 +102,36 @@ export default defineContentScript({
               renderUI();
             }}
           />
+
+          {/* Phase 4 Smart Autocomplete Card */}
+          <AutocompleteCard
+            suggestion={activeSuggestion}
+            onAccept={() => {
+              if (autocompleteEngine) {
+                autocompleteEngine.acceptSuggestion();
+              }
+            }}
+            onDismiss={() => {
+              if (autocompleteEngine) {
+                autocompleteEngine.clearSuggestion();
+              }
+            }}
+          />
         </React.StrictMode>
       );
     }
 
     /**
-     * Attaches selection, mouseup, and keyup event listeners
+     * Attaches selection, keyboard, and input event listeners
      */
     function attachEventListeners() {
       // Focus tracking
       document.addEventListener('focusin', handleFocusIn, true);
       document.addEventListener('focusout', handleFocusOut, true);
+
+      // Typing and autocomplete tracking
+      document.addEventListener('input', handleInput, true);
+      document.addEventListener('keydown', handleKeyDown, true);
 
       // Selection tracking
       document.addEventListener('mouseup', handleSelectionUpdate);
@@ -113,22 +143,64 @@ export default defineContentScript({
       const inspected = inspectEditor(event.target);
       if (inspected && inspected.isEligible) {
         activeEditor = inspected;
+        autocompleteEngine?.handleFocus(inspected.element);
       } else {
         activeEditor = null;
+        autocompleteEngine?.handleBlur();
       }
     }
 
     function handleFocusOut(event: FocusEvent) {
-      // Small timeout to allow click on toolbar without immediate teardown
       setTimeout(() => {
         if (
           activeEditor &&
           activeEditor.element === event.target &&
-          !activeSnapshot
+          !activeSnapshot &&
+          !activeSuggestion
         ) {
           activeEditor = null;
+          autocompleteEngine?.handleBlur();
         }
       }, 150);
+    }
+
+    function handleInput(event: Event) {
+      if (!settings || !settings.enabled || !settings.autocompleteEnabled) return;
+
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const inspected = inspectEditor(target);
+        if (inspected && inspected.isEligible) {
+          activeEditor = inspected;
+          autocompleteEngine?.handleTyping(target, settings);
+        }
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      // If an autocomplete suggestion is active:
+      if (activeSuggestion && autocompleteEngine) {
+        if (event.key === 'Tab') {
+          // Explicit acceptance via Tab
+          event.preventDefault();
+          event.stopPropagation();
+          autocompleteEngine.acceptSuggestion();
+          return;
+        }
+
+        if (event.key === 'Escape') {
+          // Explicit dismissal via Escape
+          event.preventDefault();
+          event.stopPropagation();
+          autocompleteEngine.clearSuggestion();
+          return;
+        }
+
+        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
+          // Caret moved via navigation keys -> dismiss suggestion
+          autocompleteEngine.clearSuggestion();
+        }
+      }
     }
 
     function handleKeyUp(event: KeyboardEvent) {
@@ -143,7 +215,6 @@ export default defineContentScript({
     }
 
     function handleSelectionChange() {
-      // When user deselects to 0 characters and toolbar is closed
       if (!activeEditor || !activeEditor.isEligible) return;
 
       const sel = getActiveSelection(activeEditor.element);
@@ -154,11 +225,8 @@ export default defineContentScript({
     }
 
     function handleSelectionUpdate() {
-      if (!settings || !settings.enabled || !settings.rewriteEnabled) {
-        return;
-      }
+      if (!settings || !settings.enabled) return;
 
-      // If activeEditor is not set, try inspecting activeElement
       if (!activeEditor) {
         const inspected = inspectEditor(document.activeElement);
         if (inspected && inspected.isEligible) {
@@ -166,22 +234,25 @@ export default defineContentScript({
         }
       }
 
-      if (!activeEditor || !activeEditor.isEligible) {
-        return;
-      }
+      if (!activeEditor || !activeEditor.isEligible) return;
 
       const selection = getActiveSelection(activeEditor.element);
       if (selection && selection.text.trim().length >= 3) {
-        // Capture snapshot of current selection
-        activeSnapshot = captureSelectionSnapshot(
-          activeEditor.element,
-          selection.text,
-          selection.start,
-          selection.end
-        );
-        renderUI();
+        // Highlighting active: dismiss any autocomplete and activate selection toolbar
+        if (autocompleteEngine) {
+          autocompleteEngine.clearSuggestion();
+        }
+
+        if (settings.rewriteEnabled) {
+          activeSnapshot = captureSelectionSnapshot(
+            activeEditor.element,
+            selection.text,
+            selection.start,
+            selection.end
+          );
+          renderUI();
+        }
       } else if (!selection && activeSnapshot) {
-        // Selection cleared
         activeSnapshot = null;
         renderUI();
       }

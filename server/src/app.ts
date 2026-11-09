@@ -9,7 +9,16 @@ import autocompleteRouter from './routes/autocomplete.js';
 import { apiRateLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
-dotenv.config();
+import path from 'path';
+import fs from 'fs';
+
+// Look for server/.env or root .env
+const serverEnvPath = path.resolve(process.cwd(), 'server/.env');
+if (fs.existsSync(serverEnvPath)) {
+  dotenv.config({ path: serverEnvPath });
+} else {
+  dotenv.config();
+}
 
 export function createApp(): Express {
   const app = express();
@@ -49,3 +58,4 @@ export function createApp(): Express {
 
   return app;
 }
+
