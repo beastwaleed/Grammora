@@ -1,6 +1,30 @@
-# Grammora ✍️✨
+<p align="center">
+  <img src="grammora-showcase/assets/grammora-logo-transparent.png" alt="Grammora Logo" width="120" />
+</p>
 
-> **Grammora** is a production-grade, open-source AI-powered Chrome extension and writing companion inspired by Grammarly. It helps you write faster and more professionally across supported websites with real-time word predictions, sentence completions, grammar/spelling corrections, and contextual tone adjustments.
+<h1 align="center">Grammora</h1>
+
+<p align="center">
+  <b>The open-source, zero-friction AI writing assistant for Google Chrome.</b><br>
+  Predict words, fix grammar in one click, and refine your voice directly in your browser.
+</p>
+
+<p align="center">
+  <a href="https://github.com/beastwaleed/Grammora/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/Manifest-V3-6258E8.svg" alt="Manifest V3">
+  <img src="https://img.shields.io/badge/React-18-61DAFB.svg?logo=react" alt="React 18">
+  <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6.svg?logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/AI%20Engine-Groq%20LLaMA%203.3%2070B-orange.svg" alt="Groq LLaMA 3.3 70B">
+  <img src="https://img.shields.io/badge/Tests-49%20Passed-success.svg" alt="Tests Passed">
+</p>
+
+<p align="center">
+  <a href="grammora-showcase/output/grammora-showcase-1080p.mp4">
+    <img src="grammora-showcase/output/grammora-showcase-cover.png" alt="Grammora Product Showcase Banner" width="100%" />
+  </a>
+  <br>
+  <i>🎬 <a href="grammora-showcase/output/grammora-showcase-1080p.mp4"><b>Watch the 40-Second Product Showcase Video (1080p)</b></a> · <a href="grammora-showcase/output/grammora-showcase-4x5.mp4">Mobile 4:5 Cut</a> · <a href="grammora-showcase/storyboard.html">Interactive Storyboard Preview</a></i>
+</p>
 
 ---
 
