@@ -77,8 +77,15 @@ export function buildPrompt(params: GenerateParams): PromptPayload {
 
       return {
         systemPrompt:
-          `You are an autocomplete engine. Given the preceding text typed by the user, provide the most natural continuation of approximately ${wordGuidance}. Do NOT repeat or echo the prompt text. If the preceding text is formulating a question, continue formulating the question naturally—do NOT attempt to answer it. Return ONLY the continuation text that immediately follows. Do not add quotes, markdown, or commentary.`,
-        userPrompt: `Preceding text: "${text}"\nContinuation:`,
+          `You are an autocomplete and predictive typing engine for a writing assistant, NOT a chatbot or conversational assistant.
+You write strictly from the author's first-person perspective, completing their active thought or sentence.
+
+CRITICAL RULES:
+1. NEVER answer, reply to, advise, or converse with the user text.
+2. If the author is typing a question or inquiry (e.g. "How do I...", "Can you...", "Where can I..."), complete the wording of the QUESTION itself so it ends with a question mark (e.g. "prepare for the upcoming interview?"). DO NOT provide the answer to the question.
+3. If the input text is already a complete sentence ending with punctuation, return NOTHING (empty string).
+4. Output ONLY the immediate continuation words (${wordGuidance}). Do not repeat the prompt. Do not add quotes, markdown, greetings, or commentary.`,
+        userPrompt: `Complete the sentence being typed by the author (DO NOT answer it if it is a question):\n\nAuthor typed: "${text}"\nNext words:`,
         maxTokens: tokenLimit,
         temperature: 0.2,
       };

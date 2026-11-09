@@ -92,9 +92,13 @@ export class AutocompleteEngine {
     const preceding = getPrecedingContext(el, 250);
     if (!preceding || preceding.text.trim().length < 3) return;
 
-    // Do not trigger autocomplete if the text ends on punctuation like full stops with trailing spaces
+    // Do not trigger autocomplete if the text ends on terminal punctuation (. ? ! : ;)
+    // Autocomplete is strictly for completing an active incomplete thought or sentence,
+    // not generating answers or arbitrary new paragraphs after finished questions/sentences.
     const trimmed = preceding.text.trim();
-    if (trimmed.length === 0) return;
+    if (trimmed.length === 0 || /[.?!:;][)"'”’]?$/.test(trimmed)) {
+      return;
+    }
 
     const seq = ++this.requestSequence;
     const revision = this.currentRevision;

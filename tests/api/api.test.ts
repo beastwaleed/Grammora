@@ -124,6 +124,19 @@ describe('Grammora Express Backend API Integration Tests', () => {
       expect(typeof res.body.result).toBe('string');
       expect(res.body.result.length).toBeGreaterThan(0);
     });
+
+    it('should return empty result for text ending with terminal punctuation', async () => {
+      const res = await request(app)
+        .post('/api/autocomplete')
+        .send({
+          text: 'How do I best prepare for my upcoming job interview?',
+          completionLength: 'short',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.result).toBe('');
+      expect(res.body.model).toBe('terminal-punctuation-guard');
+    });
   });
 });
 

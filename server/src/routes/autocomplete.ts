@@ -10,6 +10,20 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     const { text, completionLength, requestId = `req-${Date.now()}` } = req.body;
 
+    // Guard against finished sentences / terminal punctuation
+    const trimmed = (text || '').trim();
+    if (!trimmed || /[.?!:;][)"'”’]?$/.test(trimmed)) {
+      return res.json({
+        requestId,
+        task: 'autocomplete',
+        completionLength,
+        result: '',
+        provider: 'system',
+        model: 'terminal-punctuation-guard',
+        latencyMs: 1,
+      });
+    }
+
     try {
       const generated = await providerManager.execute({
         task: 'autocomplete',

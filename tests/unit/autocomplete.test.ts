@@ -95,5 +95,23 @@ describe('Smart Autocomplete Engine Unit Tests', () => {
     expect(textarea.value).toBe('I would like to apply'); // Unchanged
     expect(engine.getSuggestion()).toBeNull();
   });
+
+  it('should ignore autocomplete trigger when text ends on question mark or period', () => {
+    vi.useFakeTimers();
+    const callback = vi.fn();
+    const engine = new AutocompleteEngine(callback);
+
+    textarea.value = 'How do I best prepare for my upcoming job interview?';
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+    engine.handleTyping(textarea, DEFAULT_SETTINGS);
+    vi.advanceTimersByTime(500);
+
+    // Should NOT have triggered any suggestion
+    expect(engine.getSuggestion()).toBeNull();
+    expect(callback).not.toHaveBeenCalledWith(expect.objectContaining({ completion: expect.anything() }));
+
+    vi.useRealTimers();
+  });
 });
 
