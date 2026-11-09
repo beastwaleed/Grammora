@@ -93,6 +93,21 @@ describe('Grammora Express Backend API Integration Tests', () => {
       // Verify that professional and friendly modes produce distinct outputs
       expect(profRes.body.result).not.toBe(friendlyRes.body.result);
     });
+
+    it('should rephrase a question without answering it', async () => {
+      const res = await request(app)
+        .post('/api/tone')
+        .send({
+          text: 'Hey, can you give me the details of the job?',
+          mode: 'professional',
+        });
+
+      expect(res.status).toBe(200);
+      expect(typeof res.body.result).toBe('string');
+      // The output must preserve the question rather than answering it
+      expect(res.body.result).toMatch(/\?$/);
+      expect(res.body.result.toLowerCase()).not.toContain('here are');
+    });
   });
 
   describe('POST /api/autocomplete', () => {

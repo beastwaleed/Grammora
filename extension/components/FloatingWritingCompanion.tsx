@@ -36,7 +36,7 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
       return;
     }
 
-    const width = view === 'PREVIEW' ? 340 : view === 'TOOLBAR' ? 440 : 36;
+    const width = view === 'PREVIEW' ? 360 : view === 'TOOLBAR' ? 440 : 36;
     const height = view === 'PREVIEW' ? 220 : view === 'TOOLBAR' ? 44 : 36;
 
     const coords = calculateFloatingPosition(

@@ -73,7 +73,7 @@ export const ResultPreviewCard: React.FC<ResultPreviewCardProps> = ({
         e.preventDefault();
         e.stopPropagation();
       }}
-      className="w-[340px] bg-white border border-surface-border rounded-xl shadow-popover overflow-hidden flex flex-col animate-scale-in text-content-main select-none text-xs"
+      className="w-[360px] bg-white border border-surface-border rounded-xl shadow-popover overflow-hidden flex flex-col animate-scale-in text-content-main select-none text-xs"
       style={{
         boxShadow: '0 12px 28px -6px rgba(17, 24, 39, 0.16), 0 6px 12px -3px rgba(17, 24, 39, 0.08)',
       }}
@@ -204,22 +204,26 @@ export const ResultPreviewCard: React.FC<ResultPreviewCardProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <button
               type="button"
               onClick={onDismiss}
-              className="px-2.5 py-1 text-[11px] font-medium text-content-secondary hover:text-content-main rounded-md transition-colors"
+              className="whitespace-nowrap inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-content-secondary hover:text-content-main rounded-md hover:bg-surface-muted transition-colors flex-shrink-0"
+              title="Dismiss (Esc)"
+              aria-label="Dismiss"
             >
-              Dismiss <span className="text-[9px] text-content-muted">Esc</span>
+              <span>Dismiss</span>
+              <span className="text-[9px] text-content-muted bg-slate-200/70 px-1 py-0.5 rounded font-mono leading-none">Esc</span>
             </button>
             <button
               type="button"
               onClick={onApply}
-              className="flex items-center gap-1 px-3 py-1 bg-brand-500 hover:bg-brand-600 text-white font-medium text-[11px] rounded-md shadow-sm transition-colors focus-ring"
+              className="whitespace-nowrap inline-flex items-center gap-1 px-3 py-1 bg-brand-500 hover:bg-brand-600 text-white font-medium text-[11px] rounded-md shadow-sm transition-colors focus-ring flex-shrink-0"
+              title="Apply suggestion (Enter)"
             >
               <Check className="w-3.5 h-3.5" />
               <span>Apply</span>
-              <span className="text-[9px] opacity-75">↵</span>
+              <span className="text-[9px] opacity-75 font-mono leading-none">↵</span>
             </button>
           </div>
         </div>

@@ -64,12 +64,19 @@ export class MockProvider implements AIProvider {
           .replace(/\bi is\b/gi, 'I am');
         result = fixed.charAt(0).toUpperCase() + fixed.slice(1);
       } else if (task === 'rewrite') {
-        result = `In other words, ${text.charAt(0).toLowerCase() + text.slice(1)}`;
+        result = text.trim().endsWith('?')
+          ? `Could you please clarify: ${text.charAt(0).toLowerCase() + text.slice(1)}`
+          : `In other words, ${text.charAt(0).toLowerCase() + text.slice(1)}`;
       } else if (task === 'tone') {
+        const isQuestion = text.trim().endsWith('?');
         if (mode === 'professional') {
-          result = `I would appreciate if we could address: ${text}`;
+          result = isQuestion
+            ? `Could you please advise regarding: ${text.charAt(0).toLowerCase() + text.slice(1)}`
+            : `I would appreciate if we could address: ${text}`;
         } else if (mode === 'friendly') {
-          result = `Hey there! Just wanted to share: ${text}`;
+          result = isQuestion
+            ? `Hey there! Quick question: ${text}`
+            : `Hey there! Just wanted to share: ${text}`;
         } else {
           result = text.replace(/\b(basically|actually|really|just|very)\b/gi, '').trim();
         }
