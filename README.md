@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="grammora-showcase/assets/grammora-logo-transparent.png" alt="Grammora Logo" width="120" />
+  <img src="docs/assets/logo.png" alt="Grammora Logo" width="120" />
 </p>
 
 <h1 align="center">Grammora</h1>
@@ -19,11 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="grammora-showcase/output/grammora-showcase-1080p.mp4">
-    <img src="grammora-showcase/output/grammora-showcase-cover.png" alt="Grammora Product Showcase Banner" width="100%" />
-  </a>
-  <br>
-  <i>🎬 <a href="grammora-showcase/output/grammora-showcase-1080p.mp4"><b>Watch the 40-Second Product Showcase Video (1080p)</b></a> · <a href="grammora-showcase/output/grammora-showcase-4x5.mp4">Mobile 4:5 Cut</a> · <a href="grammora-showcase/storyboard.html">Interactive Storyboard Preview</a></i>
+  <img src="docs/assets/cover.png" alt="Grammora Product Showcase Banner" width="100%" />
 </p>
 
 ---

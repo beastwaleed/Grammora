@@ -36,6 +36,7 @@ playwright-report/
 
 # Agent internal skills & tooling
 .agents/
+grammora-showcase/
 
 
 # OS & Editor
