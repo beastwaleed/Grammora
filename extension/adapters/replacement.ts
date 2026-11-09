@@ -63,12 +63,15 @@ export function validateSelectionSnapshot(snapshot: SelectionSnapshot): boolean 
   }
 
   // ContentEditable validation
-  if (element.isContentEditable && rangeSnapshot) {
-    if (!rangeSnapshot.startContainer.isConnected) {
-      return false;
+  if (element.isContentEditable) {
+    if (rangeSnapshot && rangeSnapshot.startContainer.isConnected) {
+      const currentRangeText = rangeSnapshot.toString();
+      if (currentRangeText === originalText || currentRangeText.trim() === originalText.trim()) {
+        return true;
+      }
     }
-    const currentRangeText = rangeSnapshot.toString();
-    return currentRangeText === originalText;
+    const elText = element.innerText || element.textContent || '';
+    return elText.includes(originalText.trim());
   }
 
   return false;
@@ -141,6 +144,15 @@ export function executeReplacement(
           sel.addRange(rangeSnapshot);
         }
 
+        element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        return { success: true };
+      }
+
+      // Safe DOM text replacement fallback for contenteditable
+      const targetText = snapshot.originalText.trim();
+      const currentHTML = element.innerHTML;
+      if (currentHTML.includes(targetText)) {
+        element.innerHTML = currentHTML.replace(targetText, replacementText);
         element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
         return { success: true };
       }

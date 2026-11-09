@@ -54,18 +54,18 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
   const executeAction = useCallback(async (action: WritingActionType) => {
     if (!snapshot) return;
 
-    // Validate that selection is still valid before processing
-    if (!validateSelectionSnapshot(snapshot)) {
-      setError('Selection has changed. Please highlight the text again.');
-      setView('PREVIEW');
-      return;
-    }
-
     setSelectedAction(action);
     setLoading(true);
     setError(null);
     setSuggestedText(null);
     setView('PREVIEW');
+
+    // Validate that selection is still valid before processing
+    if (!validateSelectionSnapshot(snapshot)) {
+      setError('Selection has changed. Please highlight the text again.');
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await executeAIAction(snapshot.originalText, action);

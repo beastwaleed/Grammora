@@ -47,6 +47,12 @@ export function createApp(): Express {
   // Health check route
   app.use('/api', healthRouter);
 
+  // Serve manual test playground for seamless browser testing & e2e
+  const testPagePath = path.resolve(process.cwd(), 'tests/manual');
+  if (fs.existsSync(testPagePath)) {
+    app.use('/test', express.static(testPagePath));
+  }
+
   // Core task routes
   app.use('/api', grammarRouter);
   app.use('/api', rewriteRouter);

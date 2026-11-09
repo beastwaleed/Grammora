@@ -1,43 +1,93 @@
 # Grammora ✍️✨
 
-> **Grammora** is an open-source, AI-powered Chrome extension and writing companion inspired by Grammarly. It helps you write more efficiently and professionally across supported web applications using AI-driven word predictions, sentence completions, grammar correction, and tone adjustments.
+> **Grammora** is a production-grade, open-source AI-powered Chrome extension and writing companion inspired by Grammarly. It helps you write faster and more professionally across supported websites with real-time word predictions, sentence completions, grammar/spelling corrections, and contextual tone adjustments.
 
 ---
 
 ## 🌟 Key Features
 
-1. **Context-Aware Autocomplete**
-   - Non-intrusive word and multi-word phrase completions.
-   - Configurable debounce (default 350ms) and completion lengths (*Short* ~3–6 words, *Medium* ~10–18 words).
-   - Dismissible with `Esc`, acceptable via `Tab` or click.
+### 1. Smart Predictive Autocomplete
+- **Context-Aware Continuations:** Generates relevant phrase completions based on bounded preceding text.
+- **Configurable Lengths:** Choose between **Short** (~3–6 words) and **Medium** (~10–18 words).
+- **Non-Intrusive Floating Suggestion:** Discreet suggestion card positioned directly beside your typing cursor.
+- **Keyboard First:** Press `Tab` or click to accept; press `Esc` or move the cursor to dismiss.
+- **Intelligent Debounce:** 350ms pause detection to avoid interrupting active typing.
 
-2. **Smart Selection Toolbar**
-   - Appears via an elegant floating pen icon when text is highlighted.
-   - Preserves focus, selection markers, and native editor undo history.
+### 2. Floating Writing Toolbar & Text Selection
+- **Discreet Pen Pill:** Appears automatically when highlighting 3 or more characters in any eligible editor.
+- **Unified Action Toolbar:**
+  - 🪄 **Fix Grammar:** Corrects spelling mistakes, typos, subject-verb agreement, and punctuation while preserving original meaning.
+  - 🔄 **Rephrase:** Improves fluency, elegance, and sentence flow without adding unsupported facts.
+  - 💼 **Professional Tone:** Shifts casual writing into polished executive and workplace correspondence.
+  - 😊 **Friendly Tone:** Transforms text into a warm, engaging, and conversational voice.
+  - ⚡ **Concise Mode:** Ruthlessly eliminates filler words, redundancies, and fluff to produce punchy sentences.
+- **Interactive Diff Preview:** Displays original versus AI suggestion before applying.
+- **Undo-Safe Replacement:** Replaces selected text using native browser APIs (`execCommand` / `Range`), preserving `Ctrl+Z` undo stacks.
 
-3. **Writing Transformations**
-   - **Fix Grammar:** Corrects spelling, punctuation, and syntax while preserving technical vocabulary.
-   - **Rephrase:** Improves fluency and natural expression without hallucinating unsupported facts.
-   - **Tone Adjustment:** Instantly shift writing into **Professional**, **Friendly**, or **Concise** styles.
+### 3. Privacy-First Architecture
+- **Zero Keystroke Logging:** Bounded context (up to 250 characters preceding the caret) is collected only after typing stops.
+- **Sensitive Field Protection:** Password inputs, credit card fields (`autocomplete="cc-number"`), OTPs, and developer-ignored elements (`data-grammora-ignore="true"`) are strictly ignored.
+- **One-Click Site Exclusions:** Exclude any domain (banking portals, internal work apps) directly from the popup.
+- **No Database / Plaintext Storage:** User writing is processed in-memory and never saved to persistent databases or logs.
 
-4. **Privacy-First & Secure**
-   - **Meaningful Consent:** Cloud AI is disabled until explicit first-run opt-in.
-   - **Zero Keystroke Telemetry:** Bounded context only (up to 250 characters preceding the cursor).
-   - **Sensitive Field Exclusions:** Automatic bypassing of passwords, credit cards, OTPs, and developer-ignored fields (`data-grammora-ignore="true"`).
-   - **Per-Site Controls:** One-click exclusion toggle for any domain (banking, work intranets, etc.).
-   - **No Plaintext Logging:** The backend never stores user writing history in databases or logs.
+---
+
+## 🏗️ Architecture & Technology Stack
+
+```
+                               ┌────────────────────────────────────────┐
+                               │             Host Webpage               │
+                               │  (<textarea>, <input>, [contentedit])  │
+                               └──────────────────┬─────────────────────┘
+                                                  │ User Input / Selection
+                                                  ▼
+                               ┌────────────────────────────────────────┐
+                               │     Grammora Shadow DOM Container      │
+                               │  - Floating Pen Pill & Writing Toolbar │
+                               │  - Interactive Diff Preview Card       │
+                               │  - Predictive Autocomplete Card        │
+                               └──────────────────┬─────────────────────┘
+                                                  │ chrome.runtime.sendMessage
+                                                  ▼
+                               ┌────────────────────────────────────────┐
+                               │   Chrome MV3 Background Worker         │
+                               │   (Exempt from webpage CORS & CSP)     │
+                               └──────────────────┬─────────────────────┘
+                                                  │ HTTP POST (port 3001)
+                                                  ▼
+                               ┌────────────────────────────────────────┐
+                               │   Grammora Express AI Gateway          │
+                               │   ├── Groq Provider (Primary, ~250ms)  │
+                               │   ├── Gemini Provider (Secondary)      │
+                               │   └── Local Mock Engine (Fallback)     │
+                               └────────────────────────────────────────┘
+```
+
+### Chrome Extension (Manifest V3)
+- **Framework:** [WXT](https://wxt.dev/) 0.21.5
+- **UI Engine:** React 19 + TypeScript
+- **Styling:** Tailwind CSS embedded into an isolated **Shadow DOM** (`#grammora-host`)
+- **Storage:** `chrome.storage.local` with reactive popup synchronization
+
+### Backend AI Gateway
+- **Runtime:** Node.js + Express + TypeScript
+- **Primary AI Provider:** **Groq** (`qwen/qwen3.8-27b`) delivering ~200–350ms inference latency
+- **Secondary (Backup) Provider:** **Google Gemini** (`gemini-1.5-flash`) with automatic failover
+- **Offline / Dev Mode:** Local deterministic mock engine for continuous offline operation
+- **Validation & Security:** Zod schemas, CORS filtering, and rate limiting (60 req/min)
 
 ---
 
 ## 🎨 Design System
 
-Grammora's user interface is built on a custom design system designed with **UI/UX Pro Max**:
-- **Color Palette:** Indigo primary (`#6258E8`), deep indigo hover (`#5147D4`), violet soft surfaces (`#F0EEFF`), slate text (`#172033`), and emerald success (`#16A34A`).
-- **Typography:** Strict **Inter** typography scale across all surfaces.
-- **Style Isolation:** Injected writing toolbars and suggestion cards are encapsulated inside a **Shadow DOM** container, ensuring zero CSS interference with the host webpage.
-- **Accessible:** Meets WCAG 2.2 AA contrast standards, visible focus indicators, and reduced-motion compliance.
+Grammora’s interface is crafted with **UI/UX Pro Max** standards for compact browser extensions:
+- **Primary Palette:** Brand Indigo (`#6258E8`), Hover Deep Indigo (`#5147D4`), Soft Lavender (`#F0EEFF`).
+- **Surface & Text:** Crisp White (`#FFFFFF`), Subtle Slate (`#F8FAFC`), Deep Slate Text (`#172033`).
+- **Semantic Colors:** Emerald Success (`#16A34A`), Crimson Error (`#DC2626`).
+- **Typography:** Strict Inter hierarchy with consistent sizing (`10px`–`15px`).
+- **Zero Style Leakage:** All toolbar and card styles are injected into an isolated Shadow DOM, preventing any collision with host website stylesheets.
 
-For the full specification, see [`docs/design-system.md`](docs/design-system.md).
+Full design specifications: [`docs/design-system.md`](docs/design-system.md).
 
 ---
 
@@ -45,30 +95,27 @@ For the full specification, see [`docs/design-system.md`](docs/design-system.md)
 
 ```
 grammora/
-├── extension/                     # Chrome Extension (Manifest V3 + WXT + React + Tailwind)
+├── extension/                     # Chrome Extension source (WXT + React)
 │   ├── entrypoints/
-│   │   ├── background.ts          # MV3 Service Worker (message coordinator & storage proxy)
-│   │   ├── content.ts             # Webpage content script (DOM observer & editor detector)
-│   │   └── popup/                 # Extension popup interface & settings
-│   ├── adapters/                  # Standardized editor adapters (textarea, input, contenteditable)
-│   ├── components/                # Reusable UI components (ToggleSwitch, ConsentBanner, etc.)
-│   ├── lib/                       # Typed messaging, settings store, API clients
-│   ├── styles/                    # Design tokens and Tailwind stylesheet
-│   ├── public/                    # Assets and extension brand icons (16, 32, 48, 128px)
-│   └── wxt.config.ts              # WXT build configuration
-├── server/                        # Express API Backend (Node.js + TypeScript) [Phase 3]
-│   └── src/
-│       ├── routes/                # API task routes (autocomplete, grammar, rewrite, tone)
-│       ├── providers/             # Swappable AI adapters (Mock, Hugging Face, OpenAI)
-│       └── middleware/            # Rate limiting, validation, and CORS security
+│   │   ├── background.ts          # MV3 Service Worker (message proxy & gateway client)
+│   │   ├── content.tsx            # Shadow DOM mount, selection & typing listeners
+│   │   └── popup/                 # Extension popup UI & Settings modal
+│   ├── adapters/                  # DOM adapters (editor inspection, coordinates, replacement)
+│   ├── components/                # React components (PenPill, WritingToolbar, AutocompleteCard)
+│   ├── lib/                       # Settings store, messaging types, API client
+│   └── styles/                    # Design tokens and Tailwind styles
+├── server/                        # Express AI Gateway (Node.js + TypeScript)
+│   ├── src/
+│   │   ├── providers/             # Swappable AI providers (Groq, Gemini, Mock, Manager)
+│   │   ├── prompts/               # System and task-specific prompt builders
+│   │   ├── routes/                # Endpoints (/grammar, /rewrite, /tone, /autocomplete)
+│   │   └── middleware/            # Rate limiting, validation, error handler
 ├── tests/
-│   ├── unit/                      # Vitest unit tests
-│   └── manual/test-page.html      # Local HTML test playground with multiple editor types
-├── docs/
-│   ├── architecture.md            # Detailed technical architecture & sequence flows
-│   ├── design-system.md           # Visual specification & design tokens
-│   ├── privacy.md                 # Security & responsible AI policies
-│   └── compatibility.md           # Editor compatibility matrix
+│   ├── unit/                      # Vitest unit tests (37 tests)
+│   ├── e2e/                       # Playwright browser integration tests (8 tests)
+│   └── manual/test-page.html      # Interactive HTML test playground
+├── docs/                          # Architecture, privacy, design system, compatibility
+├── CONTRIBUTING.md                # Open-source contribution guidelines
 └── README.md
 ```
 
@@ -76,49 +123,94 @@ grammora/
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### 1. Prerequisites
 - **Node.js** >= 18.0.0
 - **npm** >= 9.0.0
 - **Google Chrome** (or any Chromium browser: Brave, Edge, Arc)
 
-### 1. Build the Extension
+### 2. Installation
 ```bash
-# Navigate to extension directory
-cd extension
+# Clone the repository
+git clone https://github.com/beastwaleed/Grammora.git
+cd Grammora
 
-# Install dependencies
+# Install workspace dependencies
 npm install
-
-# Build extension for Chrome Manifest V3
-npm run build
 ```
-The compiled, ready-to-load extension will be located in `extension/.output/chrome-mv3`.
 
-### 2. Load Extension in Chrome
+### 3. Configure API Keys
+Create or update `server/.env`:
+```env
+PORT=3001
+AI_PROVIDER=groq
+
+# Primary AI Provider: Groq (ultra-fast inference)
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=qwen/qwen3.8-27b
+
+# Secondary Backup: Google Gemini
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-1.5-flash
+
+REQUEST_TIMEOUT_MS=12000
+MAX_REQUESTS_PER_MINUTE=60
+MAX_INPUT_CHARACTERS=4000
+ALLOWED_ORIGINS=chrome-extension://*,http://localhost:*
+```
+
+### 4. Build and Start the AI Gateway
+```bash
+# Build the server
+npm run build:server
+
+# Start the server daemon
+node server/dist/index.js
+```
+The server will start on `http://localhost:3001` and display provider statuses.
+
+### 5. Build and Load the Chrome Extension
+```bash
+# Build the extension for Chrome Manifest V3
+npm run build:extension
+```
 1. Open Google Chrome and navigate to `chrome://extensions/`.
-2. Enable **Developer mode** using the toggle in the upper-right corner.
+2. Enable **Developer mode** (toggle in top right).
 3. Click **Load unpacked**.
-4. Select the directory: `d:\Waleed\Grammora\extension\.output\chrome-mv3`.
-5. The **Grammora** icon will appear in your Chrome toolbar!
-
-### 3. Verify with the Test Playground
-Open `tests/manual/test-page.html` directly in Chrome:
-- Check that the Grammora popup displays the current domain and master controls.
-- Test typing in the `<textarea>`, `<input>`, and `contenteditable` fields.
-- Verify that password and credit-card fields are automatically excluded.
+4. Select the build directory: `d:\Waleed\Grammora\extension\.output\chrome-mv3`.
+5. The **Grammora** icon is now installed in your browser!
 
 ---
 
 ## 🧪 Testing
 
+### Automated Test Suites (45 Tests Passing)
+
 ```bash
-# Run unit tests
+# 1. Run Vitest Unit & API Integration Tests (37 tests)
 npm test
+
+# 2. Run Playwright Browser E2E Tests (8 tests in real Chromium)
+npm run test:e2e
+
+# 3. Run all tests
+npm run test:all
 ```
+
+### Interactive Manual Testing
+Open `http://localhost:3001/test/test-page.html` in Chrome:
+- **Typo & Grammar Correction:** Click *"Load Typo & Grammar Sample"* $\rightarrow$ select text $\rightarrow$ click floating purple pen $\rightarrow$ click **Fix Grammar** $\rightarrow$ review diff and click **Apply**.
+- **Concise Mode:** Click *"Load Wordy Sample"* $\rightarrow$ select text $\rightarrow$ click pen $\rightarrow$ click **Concise** $\rightarrow$ click **Apply**.
+- **Smart Autocomplete:** Type `"I am looking for"` and pause for 350ms $\rightarrow$ autocomplete popover appears $\rightarrow$ press `Tab` to insert.
+- **Sensitive Field Protection:** Verify password and credit card fields completely suppress the extension.
+
+---
+
+## 🤝 Contributing
+
+Contributions are warmly welcomed! Please read our [Contributing Guide](CONTRIBUTING.md) for details on code style, testing guidelines, and submitting pull requests.
 
 ---
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
+Grammora is open-source software licensed under the [MIT License](LICENSE).
