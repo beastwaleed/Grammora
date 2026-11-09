@@ -36,7 +36,7 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
       return;
     }
 
-    const width = view === 'PREVIEW' ? 320 : view === 'TOOLBAR' ? 440 : 36;
+    const width = view === 'PREVIEW' ? 340 : view === 'TOOLBAR' ? 440 : 36;
     const height = view === 'PREVIEW' ? 220 : view === 'TOOLBAR' ? 44 : 36;
 
     const coords = calculateFloatingPosition(
@@ -105,6 +105,12 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
     executeAction(selectedAction);
   }, [executeAction, selectedAction]);
 
+  const handleBack = useCallback(() => {
+    setLoading(false);
+    setError(null);
+    setView('TOOLBAR');
+  }, []);
+
   if (!snapshot || view === 'HIDDEN') {
     return null;
   }
@@ -126,6 +132,7 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
 
       {view === 'TOOLBAR' && (
         <WritingToolbar
+          activeAction={selectedAction}
           onSelectAction={(action) => executeAction(action)}
           onClose={handleDismiss}
         />
@@ -141,6 +148,7 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
           onApply={handleApply}
           onDismiss={handleDismiss}
           onRetry={handleRetry}
+          onBack={handleBack}
         />
       )}
     </div>

@@ -10,6 +10,7 @@ import {
 import { WritingActionType } from '../lib/mock-ai';
 
 interface WritingToolbarProps {
+  activeAction?: WritingActionType;
   onSelectAction: (action: WritingActionType) => void;
   onClose: () => void;
 }
@@ -30,6 +31,7 @@ const ACTIONS: ActionItem[] = [
 ];
 
 export const WritingToolbar: React.FC<WritingToolbarProps> = ({
+  activeAction,
   onSelectAction,
   onClose,
 }) => {
@@ -57,21 +59,28 @@ export const WritingToolbar: React.FC<WritingToolbarProps> = ({
       <div className="w-px h-4 bg-surface-border my-auto" />
 
       {/* Action Buttons */}
-      {ACTIONS.map(({ id, label, icon: Icon }) => (
-        <button
-          key={id}
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onSelectAction(id);
-          }}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-content-main hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-        >
-          <Icon className="w-3.5 h-3.5 flex-shrink-0 text-brand-500" />
-          <span>{label}</span>
-        </button>
-      ))}
+      {ACTIONS.map(({ id, label, icon: Icon }) => {
+        const isActive = activeAction === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onSelectAction(id);
+            }}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+              isActive
+                ? 'text-brand-700 bg-brand-50/80 font-semibold'
+                : 'text-content-main hover:text-brand-600 hover:bg-brand-50'
+            }`}
+          >
+            <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? 'text-brand-600' : 'text-brand-500'}`} />
+            <span>{label}</span>
+          </button>
+        );
+      })}
 
       <div className="w-px h-4 bg-surface-border my-auto" />
 

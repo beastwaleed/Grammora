@@ -8,6 +8,7 @@ import {
   Briefcase,
   Smile,
   Zap,
+  ArrowLeft,
 } from 'lucide-react';
 import { WritingActionType } from '../lib/mock-ai';
 
@@ -20,6 +21,7 @@ interface ResultPreviewCardProps {
   onApply: () => void;
   onDismiss: () => void;
   onRetry: () => void;
+  onBack?: () => void;
 }
 
 const ACTION_TITLES: Record<WritingActionType, { title: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -39,6 +41,7 @@ export const ResultPreviewCard: React.FC<ResultPreviewCardProps> = ({
   onApply,
   onDismiss,
   onRetry,
+  onBack,
 }) => {
   const { title, icon: Icon } = ACTION_TITLES[action] || ACTION_TITLES.grammar;
 
@@ -70,16 +73,34 @@ export const ResultPreviewCard: React.FC<ResultPreviewCardProps> = ({
         e.preventDefault();
         e.stopPropagation();
       }}
-      className="w-[320px] bg-white border border-surface-border rounded-xl shadow-popover overflow-hidden flex flex-col animate-scale-in text-content-main select-none text-xs"
+      className="w-[340px] bg-white border border-surface-border rounded-xl shadow-popover overflow-hidden flex flex-col animate-scale-in text-content-main select-none text-xs"
       style={{
         boxShadow: '0 12px 28px -6px rgba(17, 24, 39, 0.16), 0 6px 12px -3px rgba(17, 24, 39, 0.08)',
       }}
     >
-      {/* Header */}
+      {/* Header with Back button and Dismiss */}
       <div className="flex items-center justify-between px-3 py-2 bg-surface-subtle border-b border-surface-border">
-        <div className="flex items-center gap-1.5 text-brand-700 font-semibold text-[12px]">
-          <Icon className="w-3.5 h-3.5 text-brand-500 flex-shrink-0" />
-          <span>{title}</span>
+        <div className="flex items-center gap-2 text-brand-700 font-semibold text-[12px]">
+          {onBack && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onBack();
+              }}
+              className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium text-content-secondary hover:text-brand-600 hover:bg-surface-muted rounded transition-colors -ml-1 border border-transparent hover:border-surface-border"
+              title="Back to features list"
+              aria-label="Back to features"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+          )}
+          <div className="flex items-center gap-1.5">
+            <Icon className="w-3.5 h-3.5 text-brand-500 flex-shrink-0" />
+            <span>{title}</span>
+          </div>
         </div>
         <button
           type="button"
@@ -107,7 +128,17 @@ export const ResultPreviewCard: React.FC<ResultPreviewCardProps> = ({
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <p className="text-[11px] leading-relaxed">{error}</p>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-1.5">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="flex items-center gap-1 px-2 py-1 bg-white border border-slate-300 text-content-main font-medium text-[11px] rounded hover:bg-slate-50 transition-colors"
+                >
+                  <ArrowLeft className="w-3 h-3" />
+                  <span>Back to features</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onRetry}
@@ -146,15 +177,32 @@ export const ResultPreviewCard: React.FC<ResultPreviewCardProps> = ({
       {/* Footer Actions */}
       {!loading && !error && suggestedText && (
         <div className="flex items-center justify-between px-3 py-2 bg-surface-subtle border-t border-surface-border">
-          <button
-            type="button"
-            onClick={onRetry}
-            className="flex items-center gap-1 text-[11px] text-content-secondary hover:text-content-main px-1.5 py-1 rounded transition-colors"
-            title="Regenerate (R)"
-          >
-            <RefreshCw className="w-3 h-3" />
-            <span>Regenerate</span>
-          </button>
+          <div className="flex items-center gap-1">
+            {onBack && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onBack();
+                }}
+                className="flex items-center gap-1 text-[11px] text-content-secondary hover:text-brand-600 px-1.5 py-1 rounded hover:bg-surface-muted transition-colors font-medium"
+                title="Back to features list"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                <span>Back</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onRetry}
+              className="flex items-center gap-1 text-[11px] text-content-secondary hover:text-content-main px-1.5 py-1 rounded hover:bg-surface-muted transition-colors"
+              title="Regenerate (R)"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Regenerate</span>
+            </button>
+          </div>
 
           <div className="flex items-center gap-1.5">
             <button

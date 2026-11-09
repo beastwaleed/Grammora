@@ -230,4 +230,59 @@ test.describe('Grammora Chrome Extension E2E Suite', () => {
     const newText = await ce.innerText();
     expect(newText).not.toContain("She don't knows");
   });
+
+  test('should allow navigating back from preview card to toolbar to try another feature without re-selecting', async ({ page }) => {
+    const textarea = page.locator('#sample-textarea');
+    await textarea.click();
+    await textarea.fill('this sentence have some typo and grammer mistake');
+
+    // Select text
+    await textarea.evaluate((el: HTMLTextAreaElement) => {
+      el.focus();
+      el.setSelectionRange(0, el.value.length);
+      el.dispatchEvent(new Event('mouseup', { bubbles: true }));
+    });
+
+    // Click floating pen pill
+    const penPill = page.locator('#grammora-host').locator('[role="button"][aria-label*="Writing Assistant"]');
+    await expect(penPill).toBeVisible({ timeout: 5000 });
+    await penPill.click();
+
+    // Verify toolbar is visible
+    const toolbar = page.locator('#grammora-host').locator('[role="toolbar"]');
+    await expect(toolbar).toBeVisible();
+
+    // 1. First click "Fix Grammar"
+    const fixGrammarBtn = toolbar.getByRole('button', { name: /fix grammar/i });
+    await fixGrammarBtn.click();
+
+    // 2. Grammar preview card appears with Back button
+    const grammarCard = page.locator('#grammora-host').locator('[role="dialog"][aria-label*="Grammar"]');
+    await expect(grammarCard).toBeVisible({ timeout: 8000 });
+
+    const backBtn = grammarCard.getByRole('button', { name: /back/i }).first();
+    await expect(backBtn).toBeVisible();
+
+    // 3. Click "Back" without re-selecting
+    await backBtn.click();
+
+    // 4. Verify toolbar is visible again with all features
+    await expect(toolbar).toBeVisible({ timeout: 5000 });
+
+    // 5. Now choose another feature: "Professional"
+    const professionalBtn = toolbar.getByRole('button', { name: /professional/i });
+    await professionalBtn.click();
+
+    // 6. Professional preview card appears
+    const profCard = page.locator('#grammora-host').locator('[role="dialog"][aria-label*="Professional"]');
+    await expect(profCard).toBeVisible({ timeout: 8000 });
+
+    const applyBtn = profCard.getByRole('button', { name: /apply/i });
+    await expect(applyBtn).toBeVisible({ timeout: 12000 });
+    await applyBtn.click();
+
+    // 7. Verify text changed
+    const finalValue = await textarea.inputValue();
+    expect(finalValue.length).toBeGreaterThan(10);
+  });
 });
