@@ -222,6 +222,12 @@
         <textarea id="sample-textarea" rows="4"
           placeholder="Highlight text here to test the Grammora pen toolbar..."></textarea>
         <div class="btn-row">
+          <button class="quick-insert" onclick="triggerTypeAutocomplete('sample-textarea', 'I am looking for')">
+            ⚡ Autocomplete: "I am looking for..."
+          </button>
+          <button class="quick-insert" onclick="triggerTypeAutocomplete('sample-textarea', 'I would like to apply')">
+            ⚡ Autocomplete: "I would like to apply..."
+          </button>
           <button class="quick-insert"
             onclick="insertSample('sample-textarea', 'She don\'t knows how to use this application.')">
             Load Grammar Error: "She don't knows..."
@@ -298,6 +304,16 @@
   </div>
 
   <script>
+    function triggerTypeAutocomplete(id, text) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.value = text;
+        el.focus();
+        el.setSelectionRange(text.length, text.length);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+
     function insertSample(id, text) {
       const el = document.getElementById(id);
       if (el) {
