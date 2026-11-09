@@ -158,7 +158,7 @@ Click the Grammora icon in the Chrome extension bar to customize behavior:
 - **Preferences Modal (`⚙️`):**
   - Configure typing pause debounce (default: `350ms`).
   - View and manage your complete list of excluded domains.
-  - Customize the backend gateway endpoint URL (default: `http://localhost:3001`).
+  - Customize the backend gateway endpoint URL (default: `https://grammora-omega.vercel.app` or your local development server).
 
 ---
 
@@ -264,7 +264,22 @@ grammora/
 
 ---
 
-## 🚀 Getting Started
+## ⚡ Quick Install (Zero-Setup / Plug & Play)
+
+No Node.js, terminal commands, or API keys required!
+
+1. Go to the [**Latest GitHub Release**](https://github.com/beastwaleed/Grammora/releases).
+2. Download and unzip **`grammora-extension-0.1.0-chrome.zip`**.
+3. Open Google Chrome and navigate to `chrome://extensions/`.
+4. Enable **Developer mode** (toggle in the top-right corner).
+5. Click **Load unpacked** and select the unzipped `chrome-mv3` folder.
+6. Open Gmail, Google Docs, or LinkedIn — start typing and enjoy instant AI writing assistance!
+
+---
+
+## 🛠️ Developer Setup & Local Development
+
+If you wish to modify the extension or run your own local AI Gateway server:
 
 ### 1. Prerequisites
 - **Node.js** >= 18.0.0

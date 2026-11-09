@@ -40,6 +40,7 @@ grammora-showcase/
 
 
 # OS & Editor
+*.zip
 .DS_Store
 Thumbs.db
 .vscode/
