@@ -13,6 +13,7 @@ export default defineConfig({
     ],
     host_permissions: [
       'http://localhost:3001/*',
+      'https://*/*',
     ],
     action: {
       default_title: 'Grammora',

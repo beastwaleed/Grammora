@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: grammora-ai-gateway
+    env: node
+    plan: free
+    buildCommand: npm ci && npm run build:server
+    startCommand: npm run start --workspace=server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AI_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: qwen/qwen3.8-27b
