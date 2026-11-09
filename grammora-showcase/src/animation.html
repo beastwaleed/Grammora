@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grammora — Cinematic SaaS Showcase Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Inter+Tight:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="logo-data.js"></script>
+  <style>
+    :root {
+      --primary: #6258E8;
+      --primary-hover: #5147D4;
+      --bg: #070A12;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: #F8FAFC;
+      font-family: 'Inter', -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #stage-container {
+      position: relative;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 50px rgba(98, 88, 232, 0.2);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #1E293B;
+      background: #080C16;
+    }
+    canvas {
+      display: block;
+      width: 960px;
+      height: 540px;
+    }
+    #controls {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #111827;
+      padding: 10px 20px;
+      border-radius: 9999px;
+      border: 1px solid #1F2937;
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background 0.15s;
+    }
+    button:hover { background: var(--primary-hover); }
+    #scrubber {
+      width: 320px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="stage-container">
+    <canvas id="canvas" width="1920" height="1080"></canvas>
+  </div>
+
+  <div id="controls">
+    <button id="playBtn">Play</button>
+    <input type="range" id="scrubber" min="0" max="1199" value="0" step="1">
+    <span id="timecode">00:00.00 / 00:40.00</span>
+    <span id="sceneBadge" style="color:#A5B4FC; font-weight:600;">Scene 1</span>
+  </div>
+
+  <audio id="soundtrack" src="../output/soundtrack.wav" preload="auto"></audio>
+
+  <script>
+    // --- Canvas & Rendering State ---
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const playBtn = document.getElementById('playBtn');
+    const scrubber = document.getElementById('scrubber');
+    const timecode = document.getElementById('timecode');
+    const sceneBadge = document.getElementById('sceneBadge');
+    const audio = document.getElementById('soundtrack');
+
+    const TOTAL_FRAMES = 1200;
+    const FPS = 30;
+    const DURATION = 40.0;
+    let currentFrame = 0;
+    let isPlaying = false;
+    let lastTimestamp = 0;
+    let animId = null;
+
+    // Dimensions
+    const params = new URLSearchParams(window.location.search);
+    const CANVAS_WIDTH = parseInt(params.get('w') || '1920', 10);
+    const CANVAS_HEIGHT = parseInt(params.get('h') || '1080', 10);
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+
+    // Display scale in browser vs render mode
+    if (params.get('render') === '1') {
+      canvas.style.width = CANVAS_WIDTH + 'px';
+      canvas.style.height = CANVAS_HEIGHT + 'px';
+      const ctrl = document.getElementById('controls');
+      if (ctrl) ctrl.style.display = 'none';
+      const stage = document.getElementById('stage-container');
+      if (stage) {
+        stage.style.border = 'none';
+        stage.style.boxShadow = 'none';
+        stage.style.borderRadius = '0';
+      }
+      document.body.style.margin = '0';
+      document.body.style.padding = '0';
+      document.body.style.overflow = 'hidden';
+    } else if (CANVAS_WIDTH === 1080 && CANVAS_HEIGHT === 1350) {
+      canvas.style.width = '432px';
+      canvas.style.height = '540px';
+    } else {
+      canvas.style.width = '960px';
+      canvas.style.height = '540px';
+    }
+
+    // Load Logo Image
+    const logoImg = new Image();
+    let logoLoaded = false;
+    logoImg.onload = () => { logoLoaded = true; renderFrame(currentFrame); };
+    if (window.GRAMMORA_LOGO_B64) {
+      logoImg.src = window.GRAMMORA_LOGO_B64;
+    } else {
+      logoImg.src = '../assets/Grammora-Logo.png';
+    }
+
+    // --- Math & Easing Helpers ---
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+    const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const easeOutExpo = t => t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    const easeOutBack = (t, s = 1.70158) => {
+      const c1 = s;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
+
+    // Rounded rectangle helper
+    function roundRect(ctx, x, y, w, h, r) {
+      if (w < 2 * r) r = w / 2;
+      if (h < 2 * r) r = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    // Background Star / Grid Pattern
+    function drawBackground(t) {
+      const w = CANVAS_WIDTH;
+      const h = CANVAS_HEIGHT;
+
+      // Base gradient
+      const bgGrad = ctx.createRadialGradient(w * 0.5, h * 0.45, 100, w * 0.5, h * 0.5, Math.max(w, h));
+      bgGrad.addColorStop(0, '#111827');
+      bgGrad.addColorStop(0.5, '#0B0F19');
+      bgGrad.addColorStop(1, '#05070D');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Ambient glowing orbs
+      const orb1X = w * 0.3 + Math.sin(t * 0.6) * 120;
+      const orb1Y = h * 0.35 + Math.cos(t * 0.5) * 80;
+      const grad1 = ctx.createRadialGradient(orb1X, orb1Y, 10, orb1X, orb1Y, 550);
+      grad1.addColorStop(0, 'rgba(98, 88, 232, 0.28)');
+      grad1.addColorStop(0.5, 'rgba(98, 88, 232, 0.08)');
+      grad1.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad1;
+      ctx.fillRect(0, 0, w, h);
+
+      const orb2X = w * 0.75 + Math.cos(t * 0.4) * 100;
+      const orb2Y = h * 0.65 + Math.sin(t * 0.7) * 90;
+      const grad2 = ctx.createRadialGradient(orb2X, orb2Y, 10, orb2X, orb2Y, 600);
+      grad2.addColorStop(0, 'rgba(56, 189, 248, 0.16)');
+      grad2.addColorStop(0.5, 'rgba(99, 102, 241, 0.05)');
+      grad2.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad2;
+      ctx.fillRect(0, 0, w, h);
+
+      // Tech Grid overlay
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.lineWidth = 1;
+      const gridSize = 64;
+      for (let x = 0; x < w; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Realistic Mouse Cursor
+    function drawCursor(x, y, clicking = false) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      if (clicking) {
+        // Click ripple
+        ctx.beginPath();
+        ctx.arc(0, 0, 24, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(98, 88, 232, 0.7)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.scale(0.88, 0.88);
+      }
+
+      // Cursor shadow
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 4;
+
+      // Pointer path
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, 22);
+      ctx.lineTo(5.5, 17.5);
+      ctx.lineTo(11, 26);
+      ctx.lineTo(14.5, 24);
+      ctx.lineTo(9.5, 15.5);
+      ctx.lineTo(17.5, 15.5);
+      ctx.closePath();
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#0F172A';
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Realistic Chrome/Editor Mockup Window
+    function drawEditorWindow(x, y, w, h, title = "Inbox — mail.google.com/mail/u/0/#inbox", activeTab = "New Message") {
+      ctx.save();
+      // Drop shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 40;
+      ctx.shadowOffsetY = 24;
+
+      // Card surface
+      roundRect(ctx, x, y, w, h, 14);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+
+      // Border
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Title bar / browser chrome
+      roundRect(ctx, x, y, w, 44, 14);
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fill();
+      ctx.fillRect(x, y + 25, w, 19); // Flatten bottom of title bar
+
+      // Traffic light buttons
+      const btnY = y + 22;
+      const colors = ['#EF4444', '#F59E0B', '#10B981'];
+      colors.forEach((col, idx) => {
+        ctx.beginPath();
+        ctx.arc(x + 24 + idx * 18, btnY, 5.5, 0, Math.PI * 2);
+        ctx.fillStyle = col;
+        ctx.fill();
+      });
+
+      // Browser Tab
+      roundRect(ctx, x + 90, y + 8, 220, 36, 8);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.font = '500 13px Inter, sans-serif';
+      ctx.fillStyle = '#1E293B';
+      ctx.fillText(activeTab, x + 110, y + 30);
+
+      // Address pill
+      roundRect(ctx, x + 330, y + 10, w - 360, 26, 6);
+      ctx.fillStyle = '#EEF2F6';
+      ctx.fill();
+
+      // Lock icon + URL
+      ctx.fillStyle = '#64748B';
+      ctx.font = '12px "JetBrains Mono", monospace';
+      ctx.fillText("🔒 https://" + title.split(" — ")[1], x + 348, y + 27);
+
+      // Top action line
+      ctx.beginPath();
+      ctx.moveTo(x, y + 44);
+      ctx.lineTo(x + w, y + 44);
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Inner compose header
+      ctx.font = '600 15px Inter, sans-serif';
+      ctx.fillStyle = '#172033';
+      ctx.fillText("To: hiring-team@innovate.tech", x + 36, y + 82);
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = '500 14px Inter, sans-serif';
+      ctx.fillText("Subject: Application & Inquiry", x + 36, y + 114);
+
+      ctx.beginPath();
+      ctx.moveTo(x + 36, y + 130);
+      ctx.lineTo(x + w - 36, y + 130);
+      ctx.strokeStyle = '#F1F5F9';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Grammora Floating Pen Pill (Real component representation)
+    function drawFloatingPenPill(x, y, scale = 1.0) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+
+      ctx.shadowColor = 'rgba(98, 88, 232, 0.45)';
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 6;
+
+      roundRect(ctx, -18, -18, 36, 36, 10);
+      ctx.fillStyle = '#6258E8';
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+
+      // Pen nib icon
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-5, 6);
+      ctx.lineTo(6, -5);
+      ctx.moveTo(3, -8);
+      ctx.lineTo(8, -3);
+      ctx.moveTo(-7, 8);
+      ctx.lineTo(-4, 8);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Grammora 5-Action Toolbar (Exact component representation)
+    function drawToolbar(x, y, activeIndex = -1, scale = 1.0) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+
+      const items = [
+        { label: "Fix Grammar", icon: "✨" },
+        { label: "Rephrase", icon: "🔄" },
+        { label: "Make Concise", icon: "✂️" },
+        { label: "Change Tone", icon: "🎛️" },
+        { label: "Insert", icon: "↵" }
+      ];
+
+      const w = 460;
+      const h = 42;
+
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 8;
+
+      roundRect(ctx, 0, 0, w, h, 21);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      let curX = 12;
+      items.forEach((item, idx) => {
+        const itemW = 84;
+        const isActive = (idx === activeIndex);
+
+        if (isActive) {
+          roundRect(ctx, curX, 5, itemW, 32, 16);
+          ctx.fillStyle = '#6258E8';
+          ctx.fill();
+          ctx.fillStyle = '#FFFFFF';
+        } else {
+          ctx.fillStyle = '#475569';
+        }
+
+        ctx.font = '600 12px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(item.icon + " " + item.label.split(" ")[0], curX + itemW / 2, 25);
+        curX += itemW + 4;
+      });
+
+      ctx.restore();
+    }
+
+    // Grammora Diff Preview Card with newly implemented [← Back] and [Apply]
+    function drawDiffCard(x, y, featureTag, originalText, fixedText, highlightWord = "", progress = 1.0) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      const w = 440;
+      const h = 186;
+
+      ctx.shadowColor = 'rgba(15, 23, 42, 0.25)';
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 12;
+
+      roundRect(ctx, 0, 0, w, h, 14);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Card Header
+      ctx.textAlign = 'left';
+
+      // [← Back] Button
+      roundRect(ctx, 14, 12, 64, 26, 6);
+      ctx.fillStyle = '#F1F5F9';
+      ctx.fill();
+      ctx.font = '600 11px Inter, sans-serif';
+      ctx.fillStyle = '#475569';
+      ctx.fillText("← Back", 24, 29);
+
+      // Feature Badge
+      roundRect(ctx, 86, 12, 100, 26, 6);
+      ctx.fillStyle = '#F0EEFF';
+      ctx.fill();
+      ctx.fillStyle = '#6258E8';
+      ctx.font = '700 11px Inter, sans-serif';
+      ctx.fillText(featureTag, 98, 29);
+
+      // Close Esc badge
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = '500 11px "JetBrains Mono", monospace';
+      ctx.fillText("Esc to dismiss", w - 105, 29);
+
+      // Divider
+      ctx.beginPath();
+      ctx.moveTo(14, 46);
+      ctx.lineTo(w - 14, 46);
+      ctx.strokeStyle = '#F1F5F9';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Original text preview
+      ctx.font = '500 13px Inter, sans-serif';
+      ctx.fillStyle = '#94A3B8';
+      ctx.fillText(originalText, 16, 72);
+
+      // Fixed / Generated text card
+      roundRect(ctx, 14, 86, w - 28, 48, 8);
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fill();
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.font = '600 14px Inter, sans-serif';
+      ctx.fillStyle = '#0F172A';
+
+      if (highlightWord && fixedText.includes(highlightWord)) {
+        const parts = fixedText.split(highlightWord);
+        ctx.fillText(parts[0], 24, 116);
+        const p0Width = ctx.measureText(parts[0]).width;
+
+        // Highlight tag for changed word
+        const hwWidth = ctx.measureText(highlightWord).width;
+        roundRect(ctx, 22 + p0Width, 98, hwWidth + 8, 24, 4);
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+        ctx.fill();
+
+        ctx.fillStyle = '#10B981';
+        ctx.fillText(highlightWord, 26 + p0Width, 116);
+
+        ctx.fillStyle = '#0F172A';
+        ctx.fillText(parts[1], 34 + p0Width + hwWidth, 116);
+      } else {
+        ctx.fillText(fixedText, 24, 116);
+      }
+
+      // Actions bottom bar
+      // Discard Button
+      roundRect(ctx, 14, 144, 76, 30, 6);
+      ctx.fillStyle = '#F1F5F9';
+      ctx.fill();
+      ctx.fillStyle = '#64748B';
+      ctx.font = '600 12px Inter, sans-serif';
+      ctx.fillText("Discard", 28, 164);
+
+      // Apply Button
+      roundRect(ctx, w - 110, 144, 96, 30, 6);
+      ctx.fillStyle = '#6258E8';
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '600 12px Inter, sans-serif';
+      ctx.fillText("✓ Apply", w - 88, 164);
+
+      ctx.restore();
+    }
+
+    // --- MAIN RENDER FUNCTION: window.renderFrame(frameIndex, totalFrames) ---
+    window.renderFrame = function(frameIdx = 0, total = TOTAL_FRAMES) {
+      currentFrame = clamp(frameIdx, 0, TOTAL_FRAMES - 1);
+      const t = currentFrame / FPS; // Time in seconds 0.00 to 40.00
+
+      // Update HUD
+      scrubber.value = currentFrame;
+      const mins = Math.floor(t / 60).toString().padStart(2, '0');
+      const secs = (t % 60).toFixed(2).padStart(5, '0');
+      timecode.textContent = `${mins}:${secs} / 00:40.00`;
+
+      // Clear & Draw dynamic background
+      drawBackground(t);
+
+      // Determine active scene
+      let sceneNum = 1;
+      if (t < 3.0) sceneNum = 1;
+      else if (t < 6.0) sceneNum = 2;
+      else if (t < 11.0) sceneNum = 3;
+      else if (t < 16.0) sceneNum = 4;
+      else if (t < 21.0) sceneNum = 5;
+      else if (t < 26.0) sceneNum = 6;
+      else if (t < 31.0) sceneNum = 7;
+      else if (t < 35.0) sceneNum = 8;
+      else sceneNum = 9;
+
+      sceneBadge.textContent = `Scene ${sceneNum}`;
+
+      // Render Active Scene
+      ctx.save();
+      switch (sceneNum) {
+        case 1: renderScene1(t); break;
+        case 2: renderScene2(t); break;
+        case 3: renderScene3(t); break;
+        case 4: renderScene4(t); break;
+        case 5: renderScene5(t); break;
+        case 6: renderScene6(t); break;
+        case 7: renderScene7(t); break;
+        case 8: renderScene8(t); break;
+        case 9: renderScene9(t); break;
+      }
+      ctx.restore();
+    };
+
+    // ==========================================
+    // SCENE 1: The Hook (0.00s – 3.00s)
+    // "Writing shouldn't slow you down."
+    // Kinetic Typography + Hesitant Typing Friction
+    // ==========================================
+    function renderScene1(t) {
+      const p = t / 3.0; // 0 to 1
+      const cx = CANVAS_WIDTH / 2;
+      const cy = CANVAS_HEIGHT / 2;
+
+      // Camera slight push-in
+      const scale = 1.0 + p * 0.05;
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+      ctx.translate(-cx, -cy);
+
+      // Headline Kinetic Type
+      const headline = "Writing shouldn't slow you down.";
+      const words = headline.split(" ");
+
+      ctx.textAlign = 'center';
+      ctx.font = '800 68px "Inter Tight", Inter, sans-serif';
+
+      words.forEach((word, idx) => {
+        const wordDelay = idx * 0.14;
+        const wp = clamp((t - wordDelay) / 0.45, 0, 1);
+        const ease = easeOutBack(wp);
+        const yOffset = (1 - ease) * 40;
+        const opacity = wp;
+
+        ctx.save();
+        ctx.fillStyle = (idx === 2) ? '#818CF8' : `rgba(248, 250, 252, ${opacity})`;
+        ctx.shadowColor = (idx === 2) ? 'rgba(98, 88, 232, 0.6)' : 'transparent';
+        ctx.shadowBlur = 24;
+
+        // Position words in a single strong line or 2 lines
+        const lineY = cy - 40;
+        const wordX = cx - 440 + idx * 195;
+
+        ctx.translate(wordX, lineY + yOffset);
+        ctx.fillText(word, 0, 0);
+        ctx.restore();
+      });
+
+      // Simulated friction typing box
+      const boxW = 760;
+      const boxH = 90;
+      const boxX = cx - boxW / 2;
+      const boxY = cy + 40;
+
+      roundRect(ctx, boxX, boxY, boxW, boxH, 16);
+      ctx.fillStyle = 'rgba(19, 27, 46, 0.85)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(98, 88, 232, 0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Simulated typing with backspace hesitation
+      let text = "";
+      if (t < 0.8) text = "";
+      else if (t < 1.1) text = "I am writ";
+      else if (t < 1.4) text = "I am writting to askk...";
+      else if (t < 1.8) text = "I am writting to";
+      else if (t < 2.4) text = "I am wr";
+      else text = "";
+
+      ctx.textAlign = 'left';
+      ctx.font = '500 24px Inter, sans-serif';
+      ctx.fillStyle = '#CBD5E1';
+      ctx.fillText(text, boxX + 32, boxY + 54);
+
+      // Blinking cursor
+      const textWidth = ctx.measureText(text).width;
+      if (Math.floor(t * 4) % 2 === 0) {
+        ctx.fillStyle = '#818CF8';
+        ctx.fillRect(boxX + 34 + textWidth, boxY + 30, 3, 30);
+      }
+    }
+
+    // ==========================================
+    // SCENE 2: Introducing Grammora (3.00s – 6.00s)
+    // Big reveal of authentic Grammora Logo (Grammora-Logo.png)
+    // ==========================================
+    function renderScene2(t) {
+      const p = (t - 3.0) / 3.0; // 0 to 1
+      const cx = CANVAS_WIDTH / 2;
+      const cy = CANVAS_HEIGHT / 2;
+
+      // Reveal ease
+      const scaleEase = easeOutBack(clamp(p / 0.65, 0, 1), 1.2);
+      const alpha = clamp(p / 0.3, 0, 1);
+
+      // Ambient radial energy rings
+      ctx.save();
+      const ringScale = 1.0 + p * 0.4;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 60, 160 * ringScale, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(98, 88, 232, ${0.4 * (1 - p)})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy - 60, 220 * ringScale, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(56, 189, 248, ${0.25 * (1 - p)})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+
+      // Draw real Grammora Logo PNG
+      if (logoLoaded && logoImg.width > 0) {
+        ctx.save();
+        ctx.translate(cx, cy - 60);
+        ctx.scale(scaleEase, scaleEase);
+
+        // Logo ambient glow
+        ctx.shadowColor = 'rgba(98, 88, 232, 0.7)';
+        ctx.shadowBlur = 48;
+
+        const logoSize = 190;
+        ctx.drawImage(logoImg, -logoSize / 2, -logoSize / 2, logoSize, logoSize);
+        ctx.restore();
+      }
+
+      // Title & Subtitle Reveal
+      const textP = clamp((p - 0.25) / 0.5, 0, 1);
+      const textEase = easeOutCubic(textP);
+
+      ctx.save();
+      ctx.translate(cx, cy + 120 + (1 - textEase) * 30);
+      ctx.textAlign = 'center';
+
+      // Title
+      ctx.font = '800 64px "Inter Tight", Inter, sans-serif';
+      ctx.fillStyle = `rgba(255, 255, 255, ${textP})`;
+      ctx.shadowColor = 'rgba(98, 88, 232, 0.5)';
+      ctx.shadowBlur = 24;
+      ctx.fillText("Meet Grammora", 0, 0);
+
+      // Subtitle
+      ctx.font = '500 24px Inter, sans-serif';
+      ctx.fillStyle = `rgba(165, 180, 252, ${textP})`;
+      ctx.shadowColor = 'transparent';
+      ctx.fillText("Your AI writing companion.", 0, 42);
+
+      // Micro badge
+      const badgeP = clamp((p - 0.5) / 0.4, 0, 1);
+      if (badgeP > 0) {
+        roundRect(ctx, -160, 72, 320, 32, 16);
+        ctx.fillStyle = `rgba(98, 88, 232, ${0.18 * badgeP})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(98, 88, 232, ${0.45 * badgeP})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.font = '700 12px "JetBrains Mono", monospace';
+        ctx.fillStyle = `rgba(224, 231, 255, ${badgeP})`;
+        ctx.fillText("⚡ REAL-TIME CHROME ASSISTANT", 0, 93);
+      }
+
+      ctx.restore();
+    }
+
+    // ==========================================
+    // SCENE 3: Next-Word Prediction (6.00s – 11.00s)
+    // "Predict your next word."
+    // Browser + Ghost text " a" + [Tab ⇥] pill
+    // ==========================================
+    function renderScene3(t) {
+      const p = (t - 6.0) / 5.0; // 0 to 1
+      const cx = CANVAS_WIDTH / 2;
+
+      // Camera motion: zoom into compose box
+      const camZoom = 1.0 + easeOutCubic(clamp(p * 1.2, 0, 1)) * 0.18;
+      const camPanY = easeOutCubic(clamp(p * 1.2, 0, 1)) * -40;
+
+      ctx.save();
+      ctx.translate(cx, CANVAS_HEIGHT / 2 + camPanY);
+      ctx.scale(camZoom, camZoom);
+      ctx.translate(-cx, -CANVAS_HEIGHT / 2);
+
+      // Section Header Banner
+      ctx.textAlign = 'center';
+      ctx.font = '700 36px "Inter Tight", Inter, sans-serif';
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillText("Predict your next word.", cx, 90);
+
+      // Realistic Chrome Editor Window
+      const winW = 1040;
+      const winH = 540;
+      const winX = cx - winW / 2;
+      const winY = 130;
+      drawEditorWindow(winX, winY, winW, winH);
+
+      // Typed text progression: "I am looking for"
+      const fullText = "I am looking for";
+      const typeChars = Math.floor(clamp((p - 0.08) / 0.42, 0, 1) * fullText.length);
+      const typedStr = fullText.slice(0, typeChars);
+
+      ctx.textAlign = 'left';
+      ctx.font = '500 24px Inter, sans-serif';
+      ctx.fillStyle = '#172033';
+      const textX = winX + 38;
+      const textY = winY + 180;
+      ctx.fillText(typedStr, textX, textY);
+
+      const typedW = ctx.measureText(typedStr).width;
+
+      // Suggestion phase (p >= 0.55): inline ghost " a"
+      const isAccepted = (p >= 0.82);
+
+      if (p >= 0.52) {
+        if (!isAccepted) {
+          // Ghost text
+          ctx.fillStyle = '#94A3B8';
+          ctx.fillText(" a", textX + typedW, textY);
+
+          // [Tab ⇥] key pill
+          const pillX = textX + typedW + 36;
+          const pillY = textY - 22;
+          const pulse = 1.0 + Math.sin(t * 12) * 0.05;
+
+          ctx.save();
+          ctx.translate(pillX + 35, pillY + 13);
+          ctx.scale(pulse, pulse);
+          ctx.translate(-(pillX + 35), -(pillY + 13));
+
+          roundRect(ctx, pillX, pillY, 70, 26, 6);
+          ctx.fillStyle = '#6258E8';
+          ctx.fill();
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '700 12px "JetBrains Mono", monospace';
+          ctx.fillText("Tab ⇥", pillX + 13, pillY + 18);
+          ctx.restore();
+        } else {
+          // Accepted text
+          ctx.fillStyle = '#172033';
+          ctx.fillText(" a", textX + typedW, textY);
+
+          // Sparkle accent
+          ctx.fillStyle = '#10B981';
+          ctx.beginPath();
+          ctx.arc(textX + typedW + 42, textY - 8, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // ==========================================
+    // SCENE 4: Multi-Word Autocomplete (11.00s – 16.00s)
+    // "From a few words to a complete thought."
+    // Context autocomplete card + [Tab to accept]
+    // ==========================================
+    function renderScene4(t) {
+      const p = (t - 11.0) / 5.0; // 0 to 1
+      const cx = CANVAS_WIDTH / 2;
+
+      ctx.textAlign = 'center';
+      ctx.font = '700 36px "Inter Tight", Inter, sans-serif';
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillText("From a few words to a complete thought.", cx, 90);
+
+      const winW = 1040;
+      const winH = 540;
+      const winX = cx - winW / 2;
+      const winY = 130;
+      drawEditorWindow(winX, winY, winW, winH);
+
+      // Typing "I would like to apply"
+      const prefix = "I would like to apply";
+      const typeChars = Math.floor(clamp(p / 0.4, 0, 1) * prefix.length);
+      const typedStr = prefix.slice(0, typeChars);
+
+      const textX = winX + 38;
+      const textY = winY + 180;
+
+      ctx.textAlign = 'left';
+      ctx.font = '500 24px Inter, sans-serif';
+      ctx.fillStyle = '#172033';
+
+      const isAccepted = (p >= 0.78);
+
+      if (!isAccepted) {
+        ctx.fillText(typedStr, textX, textY);
+
+        // Autocomplete Suggestion Card drops down
+        if (p >= 0.44) {
+          const cardP = easeOutBack(clamp((p - 0.44) / 0.25, 0, 1));
+          const cardW = 560;
+          const cardH = 74;
+          const cardX = textX;
+          const cardY = textY + 18 + (1 - cardP) * 15;
+
+          ctx.save();
+          ctx.shadowColor = 'rgba(15, 23, 42, 0.18)';
+          ctx.shadowBlur = 18;
+          ctx.shadowOffsetY = 8;
+
+          roundRect(ctx, cardX, cardY, cardW, cardH, 10);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fill();
+          ctx.strokeStyle = '#6258E8';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Suggestion text
+          ctx.fillStyle = '#475569';
+          ctx.font = '500 16px Inter, sans-serif';
+          ctx.fillText("...for the software engineering internship.", cardX + 20, cardY + 36);
+
+          // [Tab to accept] button
+          roundRect(ctx, cardX + cardW - 145, cardY + 22, 128, 30, 6);
+          ctx.fillStyle = '#F0EEFF';
+          ctx.fill();
+          ctx.fillStyle = '#6258E8';
+          ctx.font = '700 12px "JetBrains Mono", monospace';
+          ctx.fillText("Tab to accept ↵", cardX + cardW - 138, cardY + 42);
+
+          ctx.restore();
+        }
+      } else {
+        // Complete thought accepted
+        const fullSent = "I would like to apply for the software engineering internship.";
+        ctx.fillText(fullSent, textX, textY);
+
+        // Confirmed checkmark badge
+        roundRect(ctx, textX, textY + 24, 230, 32, 16);
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.12)';
+        ctx.fill();
+        ctx.fillStyle = '#10B981';
+        ctx.font = '600 13px Inter, sans-serif';
+        ctx.fillText("✓ Context Aware Suggestion", textX + 16, textY + 45);
+      }
+    }
+
+    // ==========================================
+    // SCENE 5: Grammar Correction (16.00s – 21.00s)
+    // "Fix grammar in a click."
+    // Floating Pen -> 5-Button Toolbar -> Diff Card with [← Back]
+    // ==========================================
+    function renderScene5(t) {
+      const p = (t - 16.0) / 5.0; // 0 to 1
+      const cx = CANVAS_WIDTH / 2;
+
+      ctx.textAlign = 'center';
+      ctx.font = '700 36px "Inter Tight", Inter, sans-serif';
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillText("Fix grammar in a click.", cx, 90);
+
+      const winW = 1040;
+      const winH = 540;
+      const winX = cx - winW / 2;
+      const winY = 130;
+      drawEditorWindow(winX, winY, winW, winH);
+
+      const textX = winX + 38;
+      const textY = winY + 180;
+      const isApplied = (p >= 0.85);
+
+      if (!isApplied) {
+        // Text: "She don't know how it works."
+        ctx.textAlign = 'left';
+        ctx.font = '500 24px Inter, sans-serif';
+        ctx.fillStyle = '#172033';
+        ctx.fillText("She don't know how it works.", textX, textY);
+
+        // Red squiggly line under "don't"
+        const dontX = textX + ctx.measureText("She ").width;
+        const dontW = ctx.measureText("don't").width;
+
+        ctx.strokeStyle = '#EF4444';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let x = dontX; x <= dontX + dontW; x += 4) {
+          ctx.lineTo(x, textY + 6 + Math.sin(x * 1.5) * 2.5);
+        }
+        ctx.stroke();
+
+        // Selection highlight
+        if (p >= 0.2) {
+          const selW = ctx.measureText("She don't know how it works.").width + 12;
+          ctx.fillStyle = 'rgba(98, 88, 232, 0.18)';
+          ctx.fillRect(textX - 4, textY - 26, selW, 36);
+
+          // Floating Pen Pill
+          const penScale = easeOutBack(clamp((p - 0.2) / 0.15, 0, 1));
+          drawFloatingPenPill(textX + selW + 14, textY - 6, penScale);
+        }
+
+        // Toolbar expands
+        if (p >= 0.35 && p < 0.55) {
+          const tbScale = easeOutBack(clamp((p - 0.35) / 0.15, 0, 1));
+          drawToolbar(textX, textY + 24, 0, tbScale);
+        }
+
+        // Diff Card appears
+        if (p >= 0.52) {
+          drawDiffCard(
+            textX, textY + 24,
+            "✨ Grammar Correction",
+            "She don't know how it works.",
+            "She doesn't know how it works.",
+            "doesn't"
+          );
+
+          // Cursor moving to [Apply]
+          const curP = clamp((p - 0.55) / 0.3, 0, 1);
+          const curX = lerp(textX + 200, textX + 380, curP);
+          const curY = lerp(textY + 60, textY + 185, curP);
+          drawCursor(curX, curY, p >= 0.82);
+        }
+      } else {
+        // Updated text in editor
+        ctx.textAlign = 'left';
+        ctx.font = '500 24px Inter, sans-serif';
+        ctx.fillStyle = '#172033';
+        ctx.fillText("She doesn't know how it works.", textX, textY);
+
+        // Success badge
+        roundRect(ctx, textX, textY + 24, 210, 32, 16);
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+        ctx.fill();
+        ctx.fillStyle = '#10B981';
+        ctx.font = '600 13px Inter, sans-serif';
+        ctx.fillText("✓ Grammar Corrected", textX + 16, textY + 45);
+      }
+    }
+
+    // ==========================================
+    // SCENE 6: Expressive Rephrasing (21.00s – 26.00s)
+    // "Say it better."
+    // Elevating plain text into articulate prose
+    // ==========================================
+    function renderScene6(t) {
+      const p = (t - 21.0) / 5.0; // 0 to 1
+      const cx = CANVAS_WIDTH / 2;
+
+      ctx.textAlign = 'center';
+      ctx.font = '700 36px "Inter Tight", Inter, sans-serif';
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillText("Say it better.", cx, 90);
+
+      const winW = 1040;
+      const winH = 540;
+      const winX = cx - winW / 2;
+      const winY = 130;
+      drawEditorWindow(winX, winY, winW, winH);
+
+      const textX = winX + 38;
+      const textY = winY + 180;
+      const isApplied = (p >= 0.82);
+
+      if (!isApplied) {
+        ctx.textAlign = 'left';
+        ctx.font = '500 24px Inter, sans-serif';
+        ctx.fillStyle = '#172033';
+        ctx.fillText("I want to know more about this job.", textX, textY);
+
+        if (p < 0.35) {
+          drawToolbar(textX, textY + 24, 1, 1.0); // Rephrase active
+        } else {
+          drawDiffCard(
+            textX, textY + 24,
+            "🔄 Rephrase",
+            "I want to know more about this job.",
+            "I'd love to learn more about this opportunity.",
+            "opportunity"
+          );
+
+          // Cursor clicks Apply
+          const curP = clamp((p - 0.4) / 0.35, 0, 1);
+          const curX = lerp(textX + 100, textX + 380, curP);
+          const curY = lerp(textY + 50, textY + 185, curP);
+          drawCursor(curX, curY, p >= 0.76);
+        }
+      } else {
+        ctx.textAlign = 'left';
+        ctx.font = '500 24px Inter, sans-serif';
+        ctx.fillStyle = '#172033';
+        ctx.fillText("I'd love to learn more about this opportunity.", textX, textY);
+
+        roundRect(ctx, textX, textY + 24, 180, 32, 16);
+        ctx.fillStyle = 'rgba(98, 88, 232, 0.15)';
+        ctx.fill();
+        ctx.fillStyle = '#6258E8';
+        ctx.font = '600 13px Inter, sans-serif';
+        ctx.fillText("✓ Naturally Polished", textX + 16, textY + 45);
+      }
+    }
+
+    // ==========================================
+    // SCENE 7: Tone Adjustment (26.00s – 31.00s)
+    // "Your message. Your tone."
+    // Casual -> Professional tone transformation
+    // ==========================================
+    function renderScene7(t) {
+      const p = (t - 26.0) / 5.0; // 0 to 1
+      const cx = CANVAS_WIDTH / 2;
+
+      ctx.textAlign = 'center';
+      ctx.font = '700 36px "Inter Tight", Inter, sans-serif';
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillText("Your message. Your tone.", cx, 90);
+
+      const winW = 1040;
+      const winH = 540;
+      const winX = cx - winW / 2;
+      const winY = 130;
+      drawEditorWindow(winX, winY, winW, winH);
+
+      const textX = winX + 38;
+      const textY = winY + 180;
+      const isSelected = (p >= 0.65);
+
+      if (!isSelected) {
+        ctx.textAlign = 'left';
+        ctx.font = '500 24px Inter, sans-serif';
+        ctx.fillStyle = '#172033';
+        ctx.fillText("Hey, send me the details.", textX, textY);
+
+        // Tone Selector Dropdown
+        const menuX = textX;
+        const menuY = textY + 24;
+
+        roundRect(ctx, menuX, menuY, 440, 120, 12);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+        ctx.strokeStyle = '#E2E8F0';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.font = '700 12px Inter, sans-serif';
+        ctx.fillStyle = '#64748B';
+        ctx.fillText("SELECT AUDIENCE TONE", menuX + 16, menuY + 26);
+
+        // Tones Pills
+        const tones = [
+          { name: "Professional", active: true },
+          { name: "Casual", active: false },
+          { name: "Direct", active: false },
+          { name: "Urgent", active: false }
+        ];
+
+        let pillX = menuX + 16;
+        tones.forEach(tone => {
+          const pillW = 92;
+          roundRect(ctx, pillX, menuY + 46, pillW, 36, 18);
+          ctx.fillStyle = tone.active ? '#6258E8' : '#F1F5F9';
+          ctx.fill();
+
+          ctx.font = '600 12px Inter, sans-serif';
+          ctx.fillStyle = tone.active ? '#FFFFFF' : '#475569';
+          ctx.textAlign = 'center';
+          ctx.fillText(tone.name, pillX + pillW / 2, menuY + 69);
+          pillX += pillW + 10;
+        });
+
+        // Cursor moving to "Professional" pill
+        const curP = clamp(p / 0.6, 0, 1);
+        const curX = lerp(menuX + 300, menuX + 62, curP);
+        const curY = lerp(menuY + 140, menuY + 64, curP);
+        drawCursor(curX, curY, p >= 0.58);
+      } else {
+        // Transformed text
+        ctx.textAlign = 'left';
+        ctx.font = '500 24px Inter, sans-serif';
+        ctx.fillStyle = '#172033';
+        ctx.fillText("Could you please share the details when you have a moment?", textX, textY);
+
+        // Professional tone badge
+        roundRect(ctx, textX, textY + 24, 210, 32, 16);
+        ctx.fillStyle = '#F0EEFF';
+        ctx.fill();
+        ctx.fillStyle = '#6258E8';
+        ctx.font = '600 13px Inter, sans-serif';
+        ctx.fillText("✨ Professional Tone Applied", textX + 14, textY + 45);
+      }
+    }
+
+    // ==========================================
+    // SCENE 8: Core Benefits (31.00s – 35.00s)
+    // "Write smarter. Stay focused. Keep your flow."
+    // 3 Glassmorphic Feature Cards with dynamic glow
+    // ==========================================
+    function renderScene8(t) {
+      const p = (t - 31.0) / 4.0; // 0 to 1
+      const cx = CANVAS_WIDTH / 2;
+
+      ctx.textAlign = 'center';
+      ctx.font = '800 48px "Inter Tight", Inter, sans-serif';
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillText("Write smarter. Stay focused. Keep your flow.", cx, 140);
+
+      const cards = [
+        {
+          title: "Smart Predictions",
+          desc: "Anticipates words and full sentences with zero latency.",
+          icon: "⚡",
+          tag: "Tab to Complete"
+        },
+        {
+          title: "Flawless Grammar",
+          desc: "One-click error corrections with clear diff previews and undo.",
+          icon: "✨",
+          tag: "Instant Diff"
+        },
+        {
+          title: "Adaptive Tone",
+          desc: "Shift seamlessly between professional, casual, and concise.",
+          icon: "🎛️",
+          tag: "Tailored Voice"
+        }
+      ];
+
+      const cardW = 340;
+      const cardH = 420;
+      const startX = cx - (3 * cardW + 2 * 40) / 2;
+
+      cards.forEach((card, idx) => {
+        const delay = idx * 0.15;
+        const cardP = easeOutBack(clamp((p - delay) / 0.45, 0, 1));
+        const x = startX + idx * (cardW + 40);
+        const y = 240 + (1 - cardP) * 60;
+
+        ctx.save();
+        ctx.translate(x + cardW / 2, y + cardH / 2);
+        ctx.scale(cardP, cardP);
+        ctx.translate(-(x + cardW / 2), -(y + cardH / 2));
+
+        // Glassmorphic surface
+        ctx.shadowColor = 'rgba(98, 88, 232, 0.35)';
+        ctx.shadowBlur = 30;
+
+        roundRect(ctx, x, y, cardW, cardH, 20);
+        const cardGrad = ctx.createLinearGradient(x, y, x + cardW, y + cardH);
+        cardGrad.addColorStop(0, 'rgba(30, 41, 59, 0.9)');
+        cardGrad.addColorStop(1, 'rgba(15, 23, 42, 0.95)');
+        ctx.fillStyle = cardGrad;
+        ctx.fill();
+
+        ctx.strokeStyle = (idx === 1) ? '#818CF8' : 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Icon badge
+        roundRect(ctx, x + 28, y + 36, 56, 56, 14);
+        ctx.fillStyle = 'rgba(98, 88, 232, 0.25)';
+        ctx.fill();
+        ctx.font = '28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(card.icon, x + 56, y + 74);
+
+        // Title
+        ctx.textAlign = 'left';
+        ctx.font = '700 24px "Inter Tight", Inter, sans-serif';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(card.title, x + 28, y + 140);
+
+        // Description
+        ctx.font = '400 16px Inter, sans-serif';
+        ctx.fillStyle = '#94A3B8';
+        const words = card.desc.split(" ");
+        let line = "";
+        let lineY = y + 180;
+        words.forEach(w => {
+          if (ctx.measureText(line + w).width > cardW - 56) {
+            ctx.fillText(line, x + 28, lineY);
+            line = w + " ";
+            lineY += 24;
+          } else {
+            line += w + " ";
+          }
+        });
+        ctx.fillText(line, x + 28, lineY);
+
+        // Feature tag
+        roundRect(ctx, x + 28, y + cardH - 58, 140, 30, 6);
+        ctx.fillStyle = 'rgba(98, 88, 232, 0.2)';
+        ctx.fill();
+        ctx.fillStyle = '#C7D2FE';
+        ctx.font = '600 12px "JetBrains Mono", monospace';
+        ctx.fillText(card.tag, x + 40, y + cardH - 38);
+
+        ctx.restore();
+      });
+    }
+
+    // ==========================================
+    // SCENE 9: Brand Reveal & CTA (35.00s – 40.00s)
+    // Grammora Logo + Tagline + Call to Action
+    // ==========================================
+    function renderScene9(t) {
+      const p = (t - 35.0) / 5.0; // 0 to 1
+      const cx = CANVAS_WIDTH / 2;
+      const cy = CANVAS_HEIGHT / 2;
+
+      // Master convergence ease
+      const logoP = easeOutBack(clamp(p / 0.5, 0, 1), 1.15);
+
+      // Ambient radial bloom
+      ctx.save();
+      const bloomGrad = ctx.createRadialGradient(cx, cy - 80, 20, cx, cy - 80, 480);
+      bloomGrad.addColorStop(0, `rgba(98, 88, 232, ${0.45 * (1 - p * 0.3)})`);
+      bloomGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.12)');
+      bloomGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = bloomGrad;
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      ctx.restore();
+
+      // Draw real Grammora Logo PNG
+      if (logoLoaded && logoImg.width > 0) {
+        ctx.save();
+        ctx.translate(cx, cy - 100);
+        ctx.scale(logoP, logoP);
+
+        ctx.shadowColor = 'rgba(98, 88, 232, 0.85)';
+        ctx.shadowBlur = 60;
+
+        const size = 210;
+        ctx.drawImage(logoImg, -size / 2, -size / 2, size, size);
+        ctx.restore();
+      }
+
+      // Title & Tagline
+      const titleP = clamp((p - 0.2) / 0.45, 0, 1);
+      const titleEase = easeOutCubic(titleP);
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.translate(cx, cy + 90 + (1 - titleEase) * 25);
+
+      ctx.font = '900 76px "Inter Tight", Inter, sans-serif';
+      ctx.fillStyle = `rgba(255, 255, 255, ${titleP})`;
+      ctx.shadowColor = 'rgba(98, 88, 232, 0.6)';
+      ctx.shadowBlur = 32;
+      ctx.fillText("Grammora", 0, 0);
+
+      // Tagline
+      ctx.font = '600 26px Inter, sans-serif';
+      ctx.fillStyle = `rgba(165, 180, 252, ${titleP})`;
+      ctx.shadowColor = 'transparent';
+      ctx.fillText("Write smarter. Express better.", 0, 46);
+
+      // Call to action button
+      const ctaP = clamp((p - 0.4) / 0.4, 0, 1);
+      if (ctaP > 0) {
+        const btnW = 320;
+        const btnH = 56;
+        const btnX = -btnW / 2;
+        const btnY = 90;
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(98, 88, 232, 0.5)';
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetY = 6;
+
+        roundRect(ctx, btnX, btnY, btnW, btnH, 28);
+        ctx.fillStyle = '#6258E8';
+        ctx.fill();
+
+        ctx.font = '700 18px Inter, sans-serif';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText("Get Grammora on Chrome", 0, btnY + 35);
+        ctx.restore();
+
+        // GitHub repository link badge
+        ctx.font = '500 14px "JetBrains Mono", monospace';
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
+        ctx.fillText("Open Source on GitHub: github.com/beastwaleed/Grammora", 0, btnY + 95);
+      }
+
+      ctx.restore();
+
+      // Smooth fade to black at the very end (39.5s to 40.0s)
+      if (t >= 39.4) {
+        const fadeP = (t - 39.4) / 0.6;
+        ctx.fillStyle = `rgba(7, 10, 18, ${clamp(fadeP, 0, 1)})`;
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      }
+    }
+
+    // --- Interactive Playback Engine ---
+    function loop(timestamp) {
+      if (!isPlaying) return;
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const delta = (timestamp - lastTimestamp) / 1000;
+      lastTimestamp = timestamp;
+
+      currentFrame += delta * FPS;
+      if (currentFrame >= TOTAL_FRAMES) {
+        currentFrame = TOTAL_FRAMES - 1;
+        isPlaying = false;
+        playBtn.textContent = 'Play';
+        audio.pause();
+        audio.currentTime = 0;
+      }
+
+      renderFrame(Math.floor(currentFrame));
+      if (isPlaying) {
+        animId = requestAnimationFrame(loop);
+      }
+    }
+
+    playBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        if (currentFrame >= TOTAL_FRAMES - 1) currentFrame = 0;
+        playBtn.textContent = 'Pause';
+        lastTimestamp = performance.now();
+        audio.currentTime = currentFrame / FPS;
+        audio.play().catch(() => {});
+        animId = requestAnimationFrame(loop);
+      } else {
+        playBtn.textContent = 'Play';
+        audio.pause();
+        if (animId) cancelAnimationFrame(animId);
+      }
+    });
+
+    scrubber.addEventListener('input', (e) => {
+      currentFrame = parseInt(e.target.value, 10);
+      if (audio) audio.currentTime = currentFrame / FPS;
+      renderFrame(currentFrame);
+    });
+
+    // Initial render
+    renderFrame(0);
+  </script>
+</body>
+</html>
+
