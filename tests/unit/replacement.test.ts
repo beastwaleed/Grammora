@@ -81,3 +81,4 @@ describe('Safe Text Replacement Unit Tests', () => {
     expect(textarea.value).toBe('Completely different text');
   });
 });
+

@@ -46,3 +46,4 @@ describe('Local Mock AI Engine Unit Tests', () => {
     expect(response.result.toLowerCase()).toContain('the quick brown fox');
   });
 });
+

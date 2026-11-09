@@ -8,7 +8,8 @@ import {
   executeReplacement,
 } from '../adapters/replacement';
 import { calculateFloatingPosition, FloatingPosition } from '../adapters/coordinates';
-import { mockAIRequest, WritingActionType, AIResponse } from '../lib/mock-ai';
+import { WritingActionType } from '../lib/mock-ai';
+import { executeAIAction } from '../lib/api';
 
 export type CompanionView = 'HIDDEN' | 'PEN' | 'TOOLBAR' | 'PREVIEW';
 
@@ -67,7 +68,7 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
     setView('PREVIEW');
 
     try {
-      const response: AIResponse = await mockAIRequest(snapshot.originalText, action, 400);
+      const response = await executeAIAction(snapshot.originalText, action);
 
       // Re-verify after latency
       if (!validateSelectionSnapshot(snapshot)) {
@@ -145,3 +146,4 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
     </div>
   );
 };
+

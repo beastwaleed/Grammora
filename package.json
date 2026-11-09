@@ -10,6 +10,8 @@
   ],
   "scripts": {
     "test": "vitest run",
+    "dev:server": "npm run dev --workspace=server",
+    "build:server": "npm run build --workspace=server",
     "build:extension": "npm run build --workspace=extension",
     "dev:extension": "npm run dev --workspace=extension",
     "compile:extension": "npm run compile --workspace=extension"

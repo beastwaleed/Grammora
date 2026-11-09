@@ -179,3 +179,4 @@ export const ResultPreviewCard: React.FC<ResultPreviewCardProps> = ({
     </div>
   );
 };
+
