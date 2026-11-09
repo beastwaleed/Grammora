@@ -51,3 +51,4 @@ export const ConsentBanner: React.FC<ConsentBannerProps> = ({
     </div>
   );
 };
+

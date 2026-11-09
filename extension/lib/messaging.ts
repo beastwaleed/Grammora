@@ -39,3 +39,4 @@ export async function sendToBackground<T>(message: ExtensionMessage): Promise<T>
     });
   });
 }
+

@@ -24,3 +24,4 @@
 6. **Per-Site Opt-Out:**
    - Users can exclude any website (e.g. personal banking, intranet, work portals) with a single click in the popup.
    - On excluded domains, all listeners and UI injection remain entirely inactive.
+

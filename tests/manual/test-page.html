@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grammora Test Playground</title>
+  <title>Grammora Test Playground — Phase 2 Verification</title>
   <style>
     :root {
       --color-primary: #6258E8;
@@ -30,7 +30,7 @@
     }
 
     .container {
-      max-width: 800px;
+      max-width: 820px;
       margin: 0 auto;
     }
 
@@ -64,6 +64,25 @@
       color: var(--color-text-secondary);
       font-size: 14px;
       margin-top: 4px;
+    }
+
+    .instructions-box {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: #F0EEFF;
+      border: 1px solid #C7BFFF;
+      border-radius: 12px;
+      font-size: 13px;
+      color: #3730A3;
+    }
+
+    .instructions-box ol {
+      margin-left: 20px;
+      margin-top: 6px;
+    }
+
+    .instructions-box li {
+      margin-bottom: 4px;
     }
 
     .grid {
@@ -140,6 +159,7 @@
 
     .btn-row {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-top: 10px;
     }
@@ -150,39 +170,56 @@
       border: 1px solid #CBD5E1;
       border-radius: 6px;
       font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
       color: var(--color-text-main);
-      transition: background 0.15s ease;
+      transition: all 0.15s ease;
     }
 
     button.quick-insert:hover {
       background: #E2E8F0;
+      border-color: #94A3B8;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <span class="badge">Verification Environment</span>
-      <h1>Grammora Editor Test Playground</h1>
-      <p class="subtitle">Use this local testing suite to verify editor detection, typing autocomplete, selection tracking, and sensitive-field security exclusions.</p>
+      <span class="badge">Phase 2 Verification Suite</span>
+      <h1>Grammora Selection Toolbar & Mock AI Playground</h1>
+      <p class="subtitle">Interactive testing suite for floating pen icon, writing toolbar actions, diff preview card, and safe text replacement.</p>
+
+      <div class="instructions-box">
+        <strong>How to Test Phase 2:</strong>
+        <ol>
+          <li>Load or type sample text into any supported editor below.</li>
+          <li>Highlight (select) a phrase or sentence (≥ 3 characters).</li>
+          <li>Notice the <strong>floating Grammora pen icon</strong> appear near the selection.</li>
+          <li>Click the pen icon to open the <strong>expanded writing toolbar</strong>.</li>
+          <li>Choose an action: <strong>Fix Grammar</strong>, <strong>Rephrase</strong>, <strong>Professional</strong>, <strong>Friendly</strong>, or <strong>Concise</strong>.</li>
+          <li>Review the <strong>preview card</strong> comparison. Press <strong>Enter</strong> or click <strong>Apply</strong> to replace text safely.</li>
+        </ol>
+      </div>
     </div>
 
     <div class="grid">
       <!-- Standard Textarea -->
       <div class="card">
         <div class="card-title">
-          <span>1. Standard &lt;textarea&gt;</span>
+          <span>1. Standard &lt;textarea&gt; (Multi-line Editor)</span>
           <span class="status-pill supported">Eligible</span>
         </div>
-        <p class="field-desc">Primary target for paragraph editing, email drafting, and multi-sentence rewrite.</p>
-        <textarea id="sample-textarea" rows="4" placeholder="Type here or select text to test Grammora..."></textarea>
+        <p class="field-desc">Select text below to test grammar correction, rephrasing, and tone adjustments.</p>
+        <textarea id="sample-textarea" rows="4" placeholder="Highlight text here to test the Grammora pen toolbar..."></textarea>
         <div class="btn-row">
           <button class="quick-insert" onclick="insertSample('sample-textarea', 'She don\'t knows how to use this application.')">
-            Load Grammar Error Sample
+            Load Grammar Error: "She don't knows..."
           </button>
           <button class="quick-insert" onclick="insertSample('sample-textarea', 'I want to know about the job you posted.')">
-            Load Tone Sample
+            Load Rephrase Sample: "I want to know..."
+          </button>
+          <button class="quick-insert" onclick="insertSample('sample-textarea', 'Hey, can you give me the details of the job?')">
+            Load Tone Sample: "Hey, can you give me..."
           </button>
         </div>
       </div>
@@ -190,12 +227,17 @@
       <!-- Contenteditable -->
       <div class="card">
         <div class="card-title">
-          <span>2. ContentEditable Editor</span>
+          <span>2. ContentEditable Editor (Rich-Text Container)</span>
           <span class="status-pill supported">Eligible</span>
         </div>
-        <p class="field-desc">Simulates modern rich-text editors and blogging platforms.</p>
+        <p class="field-desc">Simulates modern web editors like Gmail drafts, Notion blocks, and comment boxes.</p>
         <div id="sample-contenteditable" contenteditable="true">
-          I am writing to express my enthusiams about the software engineer position.
+          She don't knows how to use this application. Please help her understand the workflow.
+        </div>
+        <div class="btn-row">
+          <button class="quick-insert" onclick="selectContentEditable('sample-contenteditable')">
+            Highlight Sample in ContentEditable
+          </button>
         </div>
       </div>
 
@@ -205,8 +247,8 @@
           <span>3. Single-line &lt;input type="text"&gt;</span>
           <span class="status-pill supported">Eligible</span>
         </div>
-        <p class="field-desc">Form field for titles, subject lines, or short search descriptions.</p>
-        <input type="text" id="sample-input" placeholder="Subject line / title...">
+        <p class="field-desc">For titles, email subject lines, and short form fields.</p>
+        <input type="text" id="sample-input" value="Hey, can you give me the details of the job?">
       </div>
 
       <!-- Password Input -->
@@ -215,7 +257,7 @@
           <span>4. Sensitive Password Field</span>
           <span class="status-pill excluded">Excluded</span>
         </div>
-        <p class="field-desc">Must never trigger Grammora UI, autocomplete, or text extraction.</p>
+        <p class="field-desc">Grammora will never display a pen button or extract text from password fields.</p>
         <input type="password" id="sample-password" value="SuperSecretPassword123!">
       </div>
 
@@ -225,18 +267,18 @@
           <span>5. Payment Card Field (autocomplete="cc-number")</span>
           <span class="status-pill excluded">Excluded</span>
         </div>
-        <p class="field-desc">Must be strictly ignored by privacy heuristics.</p>
-        <input type="text" id="sample-cc" autocomplete="cc-number" placeholder="4532 •••• •••• 8892">
+        <p class="field-desc">Strictly ignored by privacy & sensitive-field heuristics.</p>
+        <input type="text" id="sample-cc" autocomplete="cc-number" value="4532 8829 0192 8821">
       </div>
 
       <!-- Explicit Ignore Field -->
       <div class="card">
         <div class="card-title">
-          <span>6. Explicit Ignore (data-grammora-ignore="true")</span>
+          <span>6. Explicit Ignore Tag (data-grammora-ignore="true")</span>
           <span class="status-pill excluded">Excluded</span>
         </div>
-        <p class="field-desc">Developer opt-out tag completely bypasses Grammora.</p>
-        <textarea data-grammora-ignore="true" rows="2" placeholder="This editor is explicitly ignored..."></textarea>
+        <p class="field-desc">Developer opt-out tag completely suppresses Grammora.</p>
+        <textarea data-grammora-ignore="true" rows="2">This text cannot be selected or transformed by Grammora.</textarea>
       </div>
     </div>
   </div>
@@ -249,6 +291,21 @@
         el.focus();
         el.setSelectionRange(0, text.length);
         el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('mouseup', { bubbles: true }));
+      }
+    }
+
+    function selectContentEditable(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.focus();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.dispatchEvent(new Event('selectionchange'));
+        el.dispatchEvent(new Event('mouseup', { bubbles: true }));
       }
     }
   </script>

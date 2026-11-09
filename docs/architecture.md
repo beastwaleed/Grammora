@@ -106,3 +106,4 @@ The content script is injected into permitted web pages. It is responsible for:
    - Strict input length limit (e.g. 4000 characters for rewrite, 1000 for autocomplete).
    - Rate limiting via `express-rate-limit`.
    - Error code normalization (`INVALID_INPUT`, `PROVIDER_TIMEOUT`, `PROVIDER_ERROR`, `QUOTA_EXCEEDED`).
+

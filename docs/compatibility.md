@@ -33,3 +33,4 @@ The following editors are slated for dedicated adapters in v1.1+:
 - Slate.js / Lexical (React/virtual DOM state reconciliation)
 - CodeMirror / Monaco Editor (IDE code buffers)
 - Complex nested cross-origin IFrames
+

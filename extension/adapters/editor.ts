@@ -181,3 +181,4 @@ export function getActiveSelection(el: HTMLElement): SelectionRangeInfo | null {
 
   return null;
 }
+

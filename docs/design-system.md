@@ -153,3 +153,4 @@ Because content script UI components are injected directly into third-party host
 1. **Zero Host Style Leaks:** Host page styles (resets, fonts, tailwind versions) cannot mutate Grammora's toolbar or popups.
 2. **Zero Target Contamination:** Grammora's styling never pollutes host DOM elements or global tag rules.
 3. **Z-Index Discipline:** Floating UI uses `z-index: 2147483647` within its own isolated container, with fixed coordinate recalculation on scroll/resize.
+

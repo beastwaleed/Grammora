@@ -28,3 +28,4 @@
 .transition-interactive {
   @apply transition-all duration-150 ease-out;
 }
+
