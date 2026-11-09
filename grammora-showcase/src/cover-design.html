@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+  <title>Grammora Feature Showcase Cover</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Inter+Tight:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="logo-data.js"></script>
+  <style>
+    :root {
+      --primary: #6258E8;
+      --primary-glow: rgba(98, 88, 232, 0.45);
+      --primary-hover: #5147D4;
+      --bg: #070913;
+      --card-bg: rgba(17, 24, 39, 0.85);
+      --card-border: rgba(255, 255, 255, 0.09);
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --accent-green: #10B981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background-color: var(--bg);
+      font-family: 'Inter', -apple-system, sans-serif;
+      color: var(--text-main);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 64px 80px;
+    }
+
+    /* Ambient Lighting Meshes */
+    .glow-mesh-1 {
+      position: absolute;
+      top: -150px;
+      left: 200px;
+      width: 750px;
+      height: 750px;
+      background: radial-gradient(circle, rgba(98, 88, 232, 0.28) 0%, rgba(98, 88, 232, 0.05) 50%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glow-mesh-2 {
+      position: absolute;
+      bottom: -100px;
+      right: 100px;
+      width: 850px;
+      height: 850px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, rgba(99, 102, 241, 0.06) 50%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glow-mesh-3 {
+      position: absolute;
+      top: 350px;
+      right: 450px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.16) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Subtle Technical Grid Background */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .content-wrapper {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Top Header Section */
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .logo-container {
+      position: relative;
+      width: 92px;
+      height: 92px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-glow {
+      position: absolute;
+      inset: -12px;
+      background: radial-gradient(circle, rgba(98, 88, 232, 0.7) 0%, transparent 70%);
+      border-radius: 28px;
+      filter: blur(14px);
+    }
+
+    .logo-img {
+      position: relative;
+      width: 92px;
+      height: 92px;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 24px rgba(0,0,0,0.5));
+    }
+
+    .brand-text h1 {
+      font-family: 'Inter Tight', sans-serif;
+      font-size: 52px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      background: linear-gradient(135deg, #FFFFFF 30%, #CBD5E1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .brand-text p {
+      font-size: 20px;
+      font-weight: 500;
+      color: #A5B4FC;
+      letter-spacing: -0.01em;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 13px;
+      font-weight: 600;
+      color: #E2E8F0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .badge-primary {
+      background: rgba(98, 88, 232, 0.2);
+      border-color: rgba(98, 88, 232, 0.45);
+      color: #C7D2FE;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 10px #10B981;
+    }
+
+    /* Main Showcase Area */
+    .main-showcase {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 40px;
+      align-items: center;
+      margin: 24px 0;
+    }
+
+    /* Left: Realistic Chrome Browser Mockup */
+    .browser-card {
+      background: #FFFFFF;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 35px 80px -20px rgba(0, 0, 0, 0.85), 0 0 45px rgba(98, 88, 232, 0.2);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .browser-titlebar {
+      background: #F8FAFC;
+      height: 48px;
+      border-bottom: 1px solid #E2E8F0;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+    }
+
+    .traffic-lights {
+      display: flex;
+      gap: 8px;
+    }
+
+    .traffic-light {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+
+    .tl-red { background: #EF4444; }
+    .tl-yellow { background: #F59E0B; }
+    .tl-green { background: #10B981; }
+
+    .browser-tab {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-bottom: none;
+      padding: 6px 16px;
+      border-radius: 8px 8px 0 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1E293B;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .browser-address {
+      flex: 1;
+      background: #EEF2F6;
+      border-radius: 8px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #64748B;
+    }
+
+    .browser-content {
+      padding: 32px 36px 40px;
+      background: #FFFFFF;
+      position: relative;
+      color: #0F172A;
+    }
+
+    .compose-header {
+      padding-bottom: 20px;
+      border-bottom: 1px solid #F1F5F9;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .compose-line {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 15px;
+    }
+
+    .compose-label {
+      font-weight: 600;
+      color: #64748B;
+      width: 65px;
+    }
+
+    .compose-val {
+      font-weight: 600;
+      color: #1E293B;
+    }
+
+    .editor-body {
+      font-size: 22px;
+      line-height: 1.6;
+      color: #1E293B;
+      position: relative;
+    }
+
+    .typed-text {
+      color: #0F172A;
+      font-weight: 500;
+    }
+
+    .ghost-text {
+      color: #94A3B8;
+      font-weight: 500;
+    }
+
+    .tab-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #6258E8;
+      color: #FFFFFF;
+      padding: 3px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      margin-left: 10px;
+      box-shadow: 0 4px 12px rgba(98, 88, 232, 0.4);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    /* Floating Grammora Toolbar Component */
+    .floating-toolbar-wrapper {
+      margin-top: 36px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .floating-pen-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #6258E8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(98, 88, 232, 0.45);
+      color: white;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .toolbar-pill {
+      background: #FFFFFF;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 9999px;
+      padding: 5px 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+    }
+
+    .toolbar-item {
+      padding: 7px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toolbar-item.active {
+      background: #6258E8;
+      color: #FFFFFF;
+      box-shadow: 0 4px 12px rgba(98, 88, 232, 0.35);
+    }
+
+    /* Right: Interactive Diff & Tone Feature Cards */
+    .feature-showcase-column {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Glassmorphic Diff Preview Card */
+    .diff-card {
+      background: rgba(19, 27, 46, 0.88);
+      backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(98, 88, 232, 0.4);
+      border-radius: 18px;
+      padding: 24px 28px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), 0 0 30px rgba(98, 88, 232, 0.15);
+      position: relative;
+    }
+
+    .diff-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .diff-badge-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .back-btn {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #CBD5E1;
+    }
+
+    .feature-tag {
+      background: rgba(98, 88, 232, 0.22);
+      color: #A5B4FC;
+      border: 1px solid rgba(98, 88, 232, 0.4);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .esc-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #64748B;
+    }
+
+    .diff-original {
+      font-size: 14px;
+      color: #94A3B8;
+      text-decoration: line-through;
+      margin-bottom: 12px;
+    }
+
+    .diff-fixed-box {
+      background: rgba(11, 15, 25, 0.7);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .diff-fixed-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: #FFFFFF;
+    }
+
+    .diff-highlight {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34D399;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .diff-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn-apply {
+      background: #10B981;
+      color: #FFFFFF;
+      padding: 6px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-discard {
+      background: rgba(255, 255, 255, 0.08);
+      color: #94A3B8;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* Tone Selector Showcase Card */
+    .tone-card {
+      background: rgba(19, 27, 46, 0.88);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      padding: 22px 28px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+    }
+
+    .tone-card-title {
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: #94A3B8;
+      margin-bottom: 14px;
+      letter-spacing: 0.05em;
+    }
+
+    .tone-pills-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .tone-pill {
+      padding: 7px 16px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.06);
+      color: #94A3B8;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .tone-pill.active {
+      background: #6258E8;
+      color: #FFFFFF;
+      border-color: #818CF8;
+      box-shadow: 0 4px 14px rgba(98, 88, 232, 0.45);
+    }
+
+    .tone-preview-text {
+      font-size: 15px;
+      color: #E2E8F0;
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    /* Bottom Value Pillars Bar */
+    .bottom-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 24px;
+    }
+
+    .value-pillar {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .pillar-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: rgba(98, 88, 232, 0.18);
+      border: 1px solid rgba(98, 88, 232, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .pillar-text h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 2px;
+    }
+
+    .pillar-text p {
+      font-size: 12px;
+      color: #94A3B8;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Glowing Meshes -->
+  <div class="glow-mesh-1"></div>
+  <div class="glow-mesh-2"></div>
+  <div class="glow-mesh-3"></div>
+  <div class="grid-overlay"></div>
+
+  <div class="content-wrapper">
+
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="brand-group">
+        <div class="logo-container">
+          <div class="logo-glow"></div>
+          <img id="logoImg" class="logo-img" src="../assets/grammora-logo-transparent.png" alt="Grammora Logo">
+        </div>
+        <div class="brand-text">
+          <h1>Grammora</h1>
+          <p>The Zero-Friction AI Writing Assistant for Google Chrome</p>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <div class="badge badge-primary">
+          <span>⚡ Groq LLaMA 3.3 70B</span>
+        </div>
+        <div class="badge">
+          <span>🧩 Chrome Manifest V3</span>
+        </div>
+        <div class="badge">
+          <div class="badge-dot"></div>
+          <span>Open Source</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Feature Showcase -->
+    <main class="main-showcase">
+
+      <!-- Left: Realistic Browser Editor with Prediction & Floating Toolbar -->
+      <div class="browser-card">
+        <div class="browser-titlebar">
+          <div class="traffic-lights">
+            <div class="traffic-light tl-red"></div>
+            <div class="traffic-light tl-yellow"></div>
+            <div class="traffic-light tl-green"></div>
+          </div>
+          <div class="browser-tab">
+            <span>✉️ New Message</span>
+          </div>
+          <div class="browser-address">
+            <span>🔒 https://mail.google.com/mail/u/0/#inbox?compose=new</span>
+          </div>
+        </div>
+
+        <div class="browser-content">
+          <div class="compose-header">
+            <div class="compose-line">
+              <span class="compose-label">To:</span>
+              <span class="compose-val">sarah.miller@techcorp.io</span>
+            </div>
+            <div class="compose-line">
+              <span class="compose-label">Subject:</span>
+              <span class="compose-val">Project Roadmap & Partnership Proposal</span>
+            </div>
+          </div>
+
+          <!-- Live Inline Autocomplete Demonstration -->
+          <div class="editor-body">
+            <span class="typed-text">Thank you for reaching out yesterday. I would be delighted to schedule a quick</span>
+            <span class="ghost-text"> call to discuss our next steps.</span>
+            <span class="tab-pill">Tab ⇥</span>
+          </div>
+
+          <!-- Real Grammora Floating Writing Toolbar -->
+          <div class="floating-toolbar-wrapper">
+            <div class="floating-pen-btn">
+              <span>✍️</span>
+            </div>
+            <div class="toolbar-pill">
+              <div class="toolbar-item active">
+                <span>✨ Fix Grammar</span>
+              </div>
+              <div class="toolbar-item">
+                <span>🔄 Rephrase</span>
+              </div>
+              <div class="toolbar-item">
+                <span>✂️ Make Concise</span>
+              </div>
+              <div class="toolbar-item">
+                <span>🎛️ Change Tone</span>
+              </div>
+              <div class="toolbar-item">
+                <span>↵ Insert</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Detailed Feature Callout Cards -->
+      <div class="feature-showcase-column">
+
+        <!-- 1-Click Grammar Diff Preview Card -->
+        <div class="diff-card">
+          <div class="diff-header">
+            <div class="diff-badge-group">
+              <span class="back-btn">← Back</span>
+              <span class="feature-tag">✨ Grammar Correction</span>
+            </div>
+            <span class="esc-tag">Esc to dismiss</span>
+          </div>
+
+          <div class="diff-original">
+            She don't know how the architecture works.
+          </div>
+
+          <div class="diff-fixed-box">
+            <div class="diff-fixed-text">
+              She <span class="diff-highlight">doesn't</span> know how the architecture works.
+            </div>
+            <span style="font-size: 18px; color: #10B981;">✓</span>
+          </div>
+
+          <div class="diff-footer">
+            <span class="btn-discard">Discard</span>
+            <span class="btn-apply">✓ Apply to Editor</span>
+          </div>
+        </div>
+
+        <!-- Audience Tone Adjustment Selector -->
+        <div class="tone-card">
+          <div class="tone-card-title">AUDIENCE TONE ADJUSTER</div>
+          <div class="tone-pills-row">
+            <span class="tone-pill active">✨ Professional</span>
+            <span class="tone-pill">Casual</span>
+            <span class="tone-pill">Direct</span>
+            <span class="tone-pill">Urgent</span>
+          </div>
+          <div class="tone-preview-text">
+            "Could you please share the project specifications when you have a moment?"
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Bottom Feature Pillars -->
+    <footer class="bottom-bar">
+      <div class="value-pillar">
+        <div class="pillar-icon">⚡</div>
+        <div class="pillar-text">
+          <h3>Smart Predictions</h3>
+          <p>Real-time next-word & full-sentence autocomplete via Tab key.</p>
+        </div>
+      </div>
+
+      <div class="value-pillar">
+        <div class="pillar-icon">✨</div>
+        <div class="pillar-text">
+          <h3>1-Click Grammar Diff</h3>
+          <p>Instant error detection with non-destructive before/after previews.</p>
+        </div>
+      </div>
+
+      <div class="value-pillar">
+        <div class="pillar-icon">🎛️</div>
+        <div class="pillar-text">
+          <h3>Contextual Tone</h3>
+          <p>Switch between Professional, Casual, and Concise in one click.</p>
+        </div>
+      </div>
+
+      <div class="value-pillar">
+        <div class="pillar-icon">🛡️</div>
+        <div class="pillar-text">
+          <h3>Shadow DOM Privacy</h3>
+          <p>Zero CSS pollution, client-side isolation, and strict field guards.</p>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    if (window.GRAMMORA_LOGO_B64) {
+      document.getElementById('logoImg').src = window.GRAMMORA_LOGO_B64;
+    }
+  </script>
+</body>
+</html>
