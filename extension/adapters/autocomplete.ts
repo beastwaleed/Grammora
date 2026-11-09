@@ -159,7 +159,7 @@ export class AutocompleteEngine {
       );
 
       const suggestion: AutocompleteSuggestion = {
-        requestId: data.requestId,
+        requestId,
         sequenceId: seq,
         editorRevision: revision,
         element: el,
@@ -191,6 +191,18 @@ export class AutocompleteEngine {
       return false;
     }
 
+    // Format completion spacing so words don't get glued to preceding text
+    let textToInsert = completion;
+    const needsLeadingSpace =
+      precedingText.length > 0 &&
+      !/\s$/.test(precedingText) &&
+      !/^\s/.test(completion) &&
+      !/^[.,!?;:]/.test(completion);
+
+    if (needsLeadingSpace) {
+      textToInsert = ' ' + textToInsert;
+    }
+
     try {
       if (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement) {
         element.focus();
@@ -198,20 +210,39 @@ export class AutocompleteEngine {
 
         let inserted = false;
         try {
-          inserted = document.execCommand('insertText', false, completion);
+          inserted = document.execCommand('insertText', false, textToInsert);
         } catch {
           inserted = false;
         }
 
         if (!inserted) {
-          element.setRangeText(completion, caretOffset, caretOffset, 'end');
+          element.setRangeText(textToInsert, caretOffset, caretOffset, 'end');
         }
 
         element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
         element.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
       } else if (element.isContentEditable) {
         element.focus();
-        document.execCommand('insertText', false, completion);
+        let inserted = false;
+        try {
+          inserted = document.execCommand('insertText', false, textToInsert);
+        } catch {
+          inserted = false;
+        }
+
+        if (!inserted) {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            const textNode = document.createTextNode(textToInsert);
+            range.insertNode(textNode);
+            range.setStartAfter(textNode);
+            range.setEndAfter(textNode);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        }
         element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
       }
 

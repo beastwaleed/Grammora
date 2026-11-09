@@ -15,9 +15,13 @@ export const rewriteSchema = z.object({
 
 export const toneSchema = z.object({
   text: z.string().trim().min(1, 'Text cannot be empty').max(MAX_TEXT_LENGTH, `Text exceeds ${MAX_TEXT_LENGTH} character limit`),
-  mode: z.enum(['professional', 'friendly', 'concise']).default('professional'),
+  mode: z.enum(['professional', 'friendly', 'concise']).optional(),
+  tone: z.enum(['professional', 'friendly', 'concise']).optional(),
   requestId: z.string().optional(),
-});
+}).transform((data) => ({
+  ...data,
+  mode: data.mode || data.tone || 'professional',
+}));
 
 export const autocompleteSchema = z.object({
   text: z.string().trim().min(1, 'Context text cannot be empty').max(1000, 'Context text exceeds 1000 character limit'),

@@ -49,9 +49,13 @@ export async function getSettings(): Promise<GrammoraSettings> {
       if (chrome.runtime.lastError || !result[STORAGE_KEY]) {
         resolve(DEFAULT_SETTINGS);
       } else {
+        const stored = result[STORAGE_KEY];
+        // Ensure cloud AI hasConsented is true by default for live Groq/Gemini processing
+        const hasConsented = stored.hasConsented !== false;
         resolve({
           ...DEFAULT_SETTINGS,
-          ...result[STORAGE_KEY],
+          ...stored,
+          hasConsented,
         });
       }
     });

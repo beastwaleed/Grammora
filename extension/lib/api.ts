@@ -21,20 +21,7 @@ export async function executeAIAction(
   const settings = await getSettings();
   const start = Date.now();
 
-  // 1. Consent guard
-  if (!settings.hasConsented) {
-    console.log('[Grammora API] Cloud AI consent not granted yet. Using local engine.');
-    const mockRes = await mockAIRequest(text, action, 250);
-    return {
-      result: mockRes.result,
-      provider: 'local-offline',
-      model: 'local-rules',
-      latencyMs: Date.now() - start,
-      isFallback: true,
-    };
-  }
-
-  // 2. Dispatch via background service worker (exempt from webpage CORS & Mixed-Content)
+  // 1. Dispatch via background service worker (exempt from webpage CORS & Mixed-Content)
   if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
     try {
       const response = await sendToBackground<AIActionResponse>({
@@ -51,7 +38,7 @@ export async function executeAIAction(
         };
       }
 
-      throw new Error(response?.error || 'AI gateway returned an error');
+      console.warn('[Grammora API] Background gateway returned non-ok:', response?.error);
     } catch (err: any) {
       console.warn('[Grammora API] Background messaging failed:', err.message);
       // Fall through to direct fetch fallback
