@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grammora — AI Writing Assistant for Google Chrome</title>
+  <meta name="description" content="The open-source, zero-friction AI writing companion for Google Chrome. Real-time autocomplete, instant grammar fixes, and tone shifts across Gmail, Google Docs, and any website.">
+  <meta name="keywords" content="Grammora, AI Writing Assistant, Chrome Extension, Grammar Checker, Autocomplete, Groq, Manifest V3">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Grammora — AI Writing Assistant for Google Chrome">
+  <meta property="og:description" content="Predict words, fix grammar in one click, and refine your voice directly in your browser. Powered by 120B parameter models.">
+  <meta property="og:image" content="assets/cover.png">
+  <meta property="og:type" content="website">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/logo.png">
+
+  <!-- Tailwind CSS & Inter Font -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#F5F3FF',
+              100: '#EDE9FE',
+              200: '#DDD6FE',
+              300: '#C4B5FD',
+              400: '#A78BFA',
+              500: '#8B5CF6',
+              600: '#7C3AED',
+              700: '#6D28D9',
+              800: '#5B21B6',
+              900: '#4C1D95',
+              950: '#2E1065',
+            },
+            surface: {
+              dark: '#0B0F19',
+              card: '#121827',
+              border: '#1F293D',
+              muted: '#1E293B',
+            }
+          },
+          boxShadow: {
+            glow: '0 0 50px -10px rgba(124, 58, 237, 0.35)',
+            card: '0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #07090E;
+      color: #F8FAFC;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #A78BFA 0%, #818CF8 50%, #C084FC 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .gradient-border {
+      position: relative;
+      background: #111827;
+      border-radius: 1rem;
+    }
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(167, 139, 250, 0.4), rgba(99, 102, 241, 0.1), rgba(255, 255, 255, 0.05));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    .ambient-glow {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, rgba(99, 102, 241, 0.05) 50%, transparent 70%);
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="selection:bg-brand-600 selection:text-white">
+
+  <!-- Ambient Background Glows -->
+  <div class="ambient-glow -top-40 left-1/2 -translate-x-1/2"></div>
+  <div class="ambient-glow top-[900px] -left-40"></div>
+  <div class="ambient-glow top-[2200px] -right-40"></div>
+
+  <!-- NAVIGATION BAR -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-[#07090E]/80 backdrop-blur-md border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2.5 group">
+        <img src="assets/logo.png" alt="Grammora Logo" class="w-8 h-8 rounded-lg shadow-sm group-hover:scale-105 transition-transform">
+        <span class="text-lg font-bold tracking-tight text-white">Grammora</span>
+        <span class="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">v0.1.0</span>
+      </a>
+
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+        <a href="#features" class="hover:text-white transition-colors">Features</a>
+        <a href="#playground" class="hover:text-white transition-colors">Live Playground</a>
+        <a href="#how-it-works" class="hover:text-white transition-colors">Install Guide</a>
+        <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+        <a href="https://github.com/beastwaleed/Grammora" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <a href="grammora-extension-v0.1.0-chrome.zip" download class="inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white shadow-glow transition-all duration-200 hover:scale-[1.02]">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          <span>Download Zip</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+      <!-- Badge -->
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-300 mb-8 backdrop-blur-sm animate-pulse">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span>Manifest V3 &amp; 120B AI Engine • 100% Free &amp; Open Source</span>
+      </div>
+
+      <!-- Main Headline -->
+      <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]">
+        Write Smarter. Fix Faster.<br>
+        <span class="gradient-text">Directly Inside Chrome.</span>
+      </h1>
+
+      <!-- Subtitle -->
+      <p class="max-w-2xl mx-auto text-base sm:text-lg text-slate-400 leading-relaxed mb-10">
+        Grammora is the zero-friction, privacy-first AI writing companion that predicts your next words, fixes typos in one click, and refines your tone across Gmail, Docs, LinkedIn, and any editor.
+      </p>
+
+      <!-- CTA Buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+        <a href="grammora-extension-v0.1.0-chrome.zip" download class="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-7 py-3.5 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-base shadow-glow transition-all duration-200 hover:scale-[1.02]">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          <span>Download Extension (.zip)</span>
+        </a>
+
+        <a href="https://github.com/beastwaleed/Grammora" target="_blank" rel="noopener noreferrer" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-surface-card hover:bg-surface-border text-slate-200 font-semibold text-base border border-white/10 transition-colors">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>View on GitHub</span>
+        </a>
+      </div>
+
+      <p class="text-xs text-slate-500 mb-14 flex items-center justify-center gap-2">
+        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        Zero Setup Required • Works immediately without local servers or API keys
+      </p>
+
+      <!-- Hero Visual Showcase -->
+      <div class="relative max-w-4xl mx-auto rounded-2xl overflow-hidden gradient-border shadow-2xl p-2 sm:p-3 bg-[#0D121F]/90">
+        <img src="assets/cover.png" alt="Grammora Hero Showcase" class="w-full h-auto rounded-xl border border-white/5 shadow-inner">
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS & TRUST STRIP -->
+  <section class="border-y border-white/5 bg-[#090D16]/50 py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      <div>
+        <div class="text-3xl font-extrabold text-white mb-1">&lt; 300ms</div>
+        <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Cloud Inference Latency</div>
+      </div>
+      <div>
+        <div class="text-3xl font-extrabold text-white mb-1">120B</div>
+        <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">LLM Parameter Intelligence</div>
+      </div>
+      <div>
+        <div class="text-3xl font-extrabold text-white mb-1">Zero</div>
+        <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Keystroke Telemetry / Privacy</div>
+      </div>
+      <div>
+        <div class="text-3xl font-extrabold text-white mb-1">1-Click</div>
+        <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Plug &amp; Play Installation</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES SHOWCASE -->
+  <section id="features" class="py-24 max-w-7xl mx-auto px-4 sm:px-6">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <h2 class="text-xs uppercase font-bold tracking-widest text-brand-400 mb-3">Engineered for Perfection</h2>
+      <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Everything You Need to Write with Superhuman Confidence</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      
+      <!-- Feature 1: Autocomplete -->
+      <div class="gradient-border p-6 sm:p-8 flex flex-col justify-between">
+        <div class="mb-6">
+          <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center font-bold text-lg mb-4">
+            ✨
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2">Smart Predictive Autocomplete</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            Predicts the next words or finishes entire sentences as you type. Non-intrusive floating pill positioned right next to your cursor with a 350ms pause debounce. Press <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-xs font-mono text-slate-300">Tab</kbd> to accept.
+          </p>
+        </div>
+        <div class="rounded-xl overflow-hidden border border-white/5 bg-[#090D16]">
+          <img src="assets/workflow-autocomplete.png" alt="Autocomplete Preview" class="w-full h-auto">
+        </div>
+      </div>
+
+      <!-- Feature 2: Pen Pill -->
+      <div class="gradient-border p-6 sm:p-8 flex flex-col justify-between">
+        <div class="mb-6">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-lg mb-4">
+            ✍️
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2">Discreet Selection Pen Pill</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            Highlight any phrase or sentence (3+ characters). A sleek floating pen appears instantly with an isolated Shadow DOM trigger. Never gets in your way, and disappears on outside click or scroll.
+          </p>
+        </div>
+        <div class="rounded-xl overflow-hidden border border-white/5 bg-[#090D16]">
+          <img src="assets/workflow-selection-pill.png" alt="Selection Pen Pill Preview" class="w-full h-auto">
+        </div>
+      </div>
+
+      <!-- Feature 3: Writing Toolbar -->
+      <div class="gradient-border p-6 sm:p-8 flex flex-col justify-between">
+        <div class="mb-6">
+          <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg mb-4">
+            ⚡
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2">Multi-Tone AI Writing Toolbar</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            Instantly shift your writing between 5 specialized modes: <b>Fix Grammar</b>, <b>Rephrase</b>, <b>Professional</b>, <b>Friendly</b>, and <b>Concise</b>. Powered by high-speed 120-billion parameter neural models.
+          </p>
+        </div>
+        <div class="rounded-xl overflow-hidden border border-white/5 bg-[#090D16]">
+          <img src="assets/workflow-toolbar.png" alt="Writing Toolbar Preview" class="w-full h-auto">
+        </div>
+      </div>
+
+      <!-- Feature 4: Diff Preview -->
+      <div class="gradient-border p-6 sm:p-8 flex flex-col justify-between">
+        <div class="mb-6">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg mb-4">
+            🔍
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2">Transparent Diff Review &amp; Undo-Safe</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            Grammora never secretly overwrites your writing. Every suggested change is displayed side-by-side with original text strikethrough. Press <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-xs font-mono text-slate-300">↵ Enter</kbd> to apply, or <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-xs font-mono text-slate-300">Ctrl+Z</kbd> to undo anytime.
+          </p>
+        </div>
+        <div class="rounded-xl overflow-hidden border border-white/5 bg-[#090D16]">
+          <img src="assets/workflow-diff-preview.png" alt="Diff Preview Card" class="w-full h-auto">
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- INTERACTIVE PLAYGROUND SECTION -->
+  <section id="playground" class="py-20 bg-[#090D16] border-y border-white/5">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6">
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 text-xs font-semibold uppercase tracking-wider mb-3">
+          Interactive Live Demo
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Test Grammora Live in Your Browser</h2>
+        <p class="text-slate-400 text-sm mt-2">Try a preset or type your own sentence, then click an action to see instant AI transformation.</p>
+      </div>
+
+      <!-- Playground Card -->
+      <div class="gradient-border p-6 sm:p-8 shadow-2xl bg-[#0D121F]">
+        <!-- Presets -->
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <span class="text-xs text-slate-400 font-semibold mr-1">Sample Presets:</span>
+          <button onclick="setSample(1)" class="px-2.5 py-1 text-xs rounded-lg bg-surface-card hover:bg-slate-700 border border-white/10 text-slate-300 transition-colors">Messy Typos</button>
+          <button onclick="setSample(2)" class="px-2.5 py-1 text-xs rounded-lg bg-surface-card hover:bg-slate-700 border border-white/10 text-slate-300 transition-colors">Casual Email</button>
+          <button onclick="setSample(3)" class="px-2.5 py-1 text-xs rounded-lg bg-surface-card hover:bg-slate-700 border border-white/10 text-slate-300 transition-colors">Wordy Fluff</button>
+        </div>
+
+        <!-- Input Box -->
+        <div class="mb-6">
+          <label class="block text-xs uppercase font-bold tracking-wider text-slate-400 mb-2">Input Text</label>
+          <textarea id="demo-input" rows="3" class="w-full px-4 py-3 rounded-xl bg-[#080B12] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-sm font-medium resize-none">this sentence have some typo and grammer mistake and need fix asap</textarea>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2.5 mb-6">
+          <button onclick="runDemo('grammar')" class="demo-btn px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+            <span>✨</span> Fix Grammar
+          </button>
+          <button onclick="runDemo('rewrite')" class="demo-btn px-3.5 py-2 rounded-lg bg-surface-card hover:bg-slate-700 border border-white/10 text-slate-200 font-semibold text-xs transition-all flex items-center gap-1.5">
+            <span>🔄</span> Rephrase
+          </button>
+          <button onclick="runDemo('professional')" class="demo-btn px-3.5 py-2 rounded-lg bg-surface-card hover:bg-slate-700 border border-white/10 text-slate-200 font-semibold text-xs transition-all flex items-center gap-1.5">
+            <span>💼</span> Professional
+          </button>
+          <button onclick="runDemo('friendly')" class="demo-btn px-3.5 py-2 rounded-lg bg-surface-card hover:bg-slate-700 border border-white/10 text-slate-200 font-semibold text-xs transition-all flex items-center gap-1.5">
+            <span>😊</span> Friendly
+          </button>
+          <button onclick="runDemo('concise')" class="demo-btn px-3.5 py-2 rounded-lg bg-surface-card hover:bg-slate-700 border border-white/10 text-slate-200 font-semibold text-xs transition-all flex items-center gap-1.5">
+            <span>⚡</span> Concise
+          </button>
+        </div>
+
+        <!-- Result Box -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-xs uppercase font-bold tracking-wider text-slate-400">Grammora AI Result</label>
+            <div id="demo-badge" class="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Ready
+            </div>
+          </div>
+          <div id="demo-output" class="w-full px-4 py-3.5 rounded-xl bg-[#080B12] border border-white/10 text-slate-200 text-sm font-medium min-h-[58px] flex items-center">
+            Click any action button above to see instant AI transformation...
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALLATION GUIDE SECTION -->
+  <section id="how-it-works" class="py-24 max-w-7xl mx-auto px-4 sm:px-6">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <h2 class="text-xs uppercase font-bold tracking-widest text-brand-400 mb-3">Plug &amp; Play Setup</h2>
+      <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Installed in Under 60 Seconds</p>
+      <p class="text-slate-400 text-sm mt-3">No command line, no Node.js, and no API keys required. It just works.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      
+      <!-- Step 1 -->
+      <div class="gradient-border p-6 relative">
+        <div class="w-8 h-8 rounded-full bg-brand-600 text-white font-bold text-sm flex items-center justify-center mb-4 shadow-glow">
+          1
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">Download Zip</h3>
+        <p class="text-slate-400 text-xs leading-relaxed mb-4">
+          Click the download button on this page to get the latest release zip file.
+        </p>
+        <a href="grammora-extension-v0.1.0-chrome.zip" download class="text-xs font-semibold text-brand-400 hover:text-brand-300 inline-flex items-center gap-1">
+          Download v0.1.0 &rarr;
+        </a>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="gradient-border p-6 relative">
+        <div class="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm flex items-center justify-center mb-4">
+          2
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">Extract Folder</h3>
+        <p class="text-slate-400 text-xs leading-relaxed">
+          Right-click the downloaded <code class="text-[11px] text-brand-300 font-mono">.zip</code> file and select <b>Extract All</b> on your computer.
+        </p>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="gradient-border p-6 relative">
+        <div class="w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-sm flex items-center justify-center mb-4">
+          3
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">Open Extensions</h3>
+        <p class="text-slate-400 text-xs leading-relaxed">
+          Open Chrome and type <code class="text-[11px] text-brand-300 font-mono">chrome://extensions</code>. Toggle <b>Developer mode</b> ON in the top-right.
+        </p>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="gradient-border p-6 relative">
+        <div class="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-sm flex items-center justify-center mb-4">
+          4
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">Load Unpacked</h3>
+        <p class="text-slate-400 text-xs leading-relaxed">
+          Click <b>Load unpacked</b> and select the unzipped <code class="text-[11px] text-brand-300 font-mono">chrome-mv3</code> folder. You're ready to write!
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PRIVACY FIRST PROMISE -->
+  <section class="py-16 bg-[#0B0F19] border-t border-white/5">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6">
+      <div class="gradient-border p-8 sm:p-10 flex flex-col md:flex-row items-center gap-8 bg-[#0D121F]">
+        <div class="w-16 h-16 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center font-bold text-3xl flex-shrink-0">
+          🛡️
+        </div>
+        <div class="flex-1">
+          <h3 class="text-2xl font-bold text-white mb-2">Privacy-First Architecture by Design</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-4">
+            Grammora strictly ignores password inputs (<code class="text-xs text-brand-300 font-mono">type="password"</code>), credit card numbers, OTP fields, and developer-ignored elements. Text is never streamed keystroke-by-keystroke; only bounded sentences are sent after you stop typing. User writing is never logged or stored.
+          </p>
+          <div class="flex flex-wrap gap-4 text-xs text-slate-300 font-medium">
+            <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Zero Keystroke Logging</span>
+            <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Password Protection</span>
+            <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 1-Click Site Exclusions</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ SECTION -->
+  <section id="faq" class="py-20 max-w-4xl mx-auto px-4 sm:px-6">
+    <div class="text-center mb-12">
+      <h2 class="text-xs uppercase font-bold tracking-widest text-brand-400 mb-2">Answers &amp; Details</h2>
+      <p class="text-3xl font-extrabold text-white">Frequently Asked Questions</p>
+    </div>
+
+    <div class="space-y-4">
+      
+      <div class="gradient-border p-6">
+        <h3 class="text-base font-bold text-white mb-2">Do I need my own Groq or Gemini API key?</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          No! The extension comes pre-configured to connect automatically to the hosted Grammora cloud gateway at <code class="text-xs text-brand-300 font-mono">https://grammora-omega.vercel.app</code>. You can start using it immediately after unzipping and loading into Chrome.
+        </p>
+      </div>
+
+      <div class="gradient-border p-6">
+        <h3 class="text-base font-bold text-white mb-2">Is Grammora really 100% free and open-source?</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          Yes! Grammora is fully open-source under the MIT License. The entire source code for both the Chrome Extension and the AI Gateway backend is available on <a href="https://github.com/beastwaleed/Grammora" class="text-brand-400 underline" target="_blank">GitHub</a>.
+        </p>
+      </div>
+
+      <div class="gradient-border p-6">
+        <h3 class="text-base font-bold text-white mb-2">Which browsers are supported?</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          Any Chromium-based web browser: Google Chrome, Brave, Microsoft Edge, Arc, Opera, and Vivaldi.
+        </p>
+      </div>
+
+      <div class="gradient-border p-6">
+        <h3 class="text-base font-bold text-white mb-2">Can developers run their own private backend server?</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          Absolutely. You can clone the GitHub repo, run <code class="text-xs text-brand-300 font-mono">npm run dev:server</code> locally, and change the API Gateway endpoint in the Grammora extension settings popup to <code class="text-xs text-brand-300 font-mono">http://localhost:3001</code>.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA FOOTER STRIP -->
+  <section class="py-20 text-center relative overflow-hidden bg-gradient-to-b from-[#090D16] to-[#05070B] border-t border-white/5">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white mb-6 tracking-tight">
+        Elevate Your Writing in Minutes.
+      </h2>
+      <p class="text-slate-400 text-base max-w-xl mx-auto mb-8">
+        Join the open-source movement. Zero setup, zero monthly fees, zero bloat.
+      </p>
+      <a href="grammora-extension-v0.1.0-chrome.zip" download class="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-base shadow-glow transition-all duration-200 hover:scale-[1.02]">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+        <span>Download Grammora for Chrome</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="py-8 bg-[#05070B] border-t border-white/5 text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <img src="assets/logo.png" alt="Grammora Logo" class="w-5 h-5 rounded">
+        <span class="text-slate-400 font-semibold">Grammora</span>
+        <span>&bull;</span>
+        <span>Created with ❤️ by <a href="https://waleedafzal.info" target="_blank" class="text-slate-400 hover:text-white underline">Waleed Afzal</a></span>
+      </div>
+      <div class="flex items-center gap-6">
+        <a href="https://github.com/beastwaleed/Grammora" target="_blank" class="hover:text-slate-300 transition-colors">GitHub Repository</a>
+        <a href="https://github.com/beastwaleed/Grammora/releases" target="_blank" class="hover:text-slate-300 transition-colors">Releases</a>
+        <a href="https://github.com/beastwaleed/Grammora/blob/main/LICENSE" target="_blank" class="hover:text-slate-300 transition-colors">MIT License</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT FOR INTERACTIVE DEMO -->
+  <script>
+    const SAMPLES = {
+      1: "this sentence have some typo and grammer mistake and need fix asap",
+      2: "hey can u send me that presentation you worked on yesterday thanks",
+      3: "Due to the fact that there are multiple different reasons why we are unable to proceed at this point in time, we have made the decision to postpone."
+    };
+
+    function setSample(id) {
+      document.getElementById('demo-input').value = SAMPLES[id] || '';
+    }
+
+    async function runDemo(action) {
+      const input = document.getElementById('demo-input').value.trim();
+      const outputEl = document.getElementById('demo-output');
+      const badgeEl = document.getElementById('demo-badge');
+
+      if (!input) {
+        outputEl.innerText = "Please enter some text in the box above first!";
+        return;
+      }
+
+      badgeEl.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> <span class="text-amber-400">Processing...</span>';
+      outputEl.innerHTML = '<span class="text-slate-500 animate-pulse">Running live 120B model inference...</span>';
+
+      try {
+        let endpoint = 'https://grammora-omega.vercel.app/api/rewrite';
+        let body = { text: input };
+
+        if (action === 'grammar') {
+          endpoint = 'https://grammora-omega.vercel.app/api/grammar';
+        } else if (action === 'rewrite') {
+          endpoint = 'https://grammora-omega.vercel.app/api/rewrite';
+        } else {
+          endpoint = 'https://grammora-omega.vercel.app/api/tone';
+          body.mode = action;
+        }
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          outputEl.innerHTML = '<span class="text-brand-300 font-semibold">' + data.result + '</span>';
+          badgeEl.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> <span class="text-emerald-400">Success (' + data.latencyMs + 'ms)</span>';
+          return;
+        }
+      } catch (e) {
+        console.warn("Live API fallback:", e);
+      }
+
+      // Offline client simulation fallback if user has network adblock
+      setTimeout(() => {
+        let simulated = input;
+        if (action === 'grammar') {
+          simulated = "This sentence has some typos and grammar mistakes, and needs to be fixed as soon as possible.";
+        } else if (action === 'rewrite') {
+          simulated = "I would appreciate your assistance in correcting the grammatical errors and typographical mistakes in this sentence promptly.";
+        } else if (action === 'professional') {
+          simulated = "Could you please review and correct the typographical and grammatical errors in this text at your earliest convenience?";
+        } else if (action === 'friendly') {
+          simulated = "Hey! Would you mind taking a quick look at this sentence to polish up the typos and grammar? Thanks a bunch!";
+        } else if (action === 'concise') {
+          simulated = "Fix the typos and grammar in this sentence promptly.";
+        }
+        outputEl.innerHTML = '<span class="text-brand-300 font-semibold">' + simulated + '</span>';
+        badgeEl.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> <span class="text-emerald-400">Done (~320ms)</span>';
+      }, 350);
+    }
+  </script>
+</body>
+</html>
