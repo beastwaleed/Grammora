@@ -6,11 +6,19 @@ const MAX_TEXT_LENGTH = Number(process.env.MAX_INPUT_CHARACTERS) || 4000;
 export const grammarSchema = z.object({
   text: z.string().trim().min(1, 'Text cannot be empty').max(MAX_TEXT_LENGTH, `Text exceeds ${MAX_TEXT_LENGTH} character limit`),
   requestId: z.string().optional(),
+  regenerate: z.boolean().optional(),
+  previousSuggestion: z.string().optional(),
+  retryCount: z.number().optional(),
+  seed: z.number().optional(),
 });
 
 export const rewriteSchema = z.object({
   text: z.string().trim().min(1, 'Text cannot be empty').max(MAX_TEXT_LENGTH, `Text exceeds ${MAX_TEXT_LENGTH} character limit`),
   requestId: z.string().optional(),
+  regenerate: z.boolean().optional(),
+  previousSuggestion: z.string().optional(),
+  retryCount: z.number().optional(),
+  seed: z.number().optional(),
 });
 
 export const toneSchema = z.object({
@@ -18,6 +26,10 @@ export const toneSchema = z.object({
   mode: z.enum(['professional', 'friendly', 'concise']).optional(),
   tone: z.enum(['professional', 'friendly', 'concise']).optional(),
   requestId: z.string().optional(),
+  regenerate: z.boolean().optional(),
+  previousSuggestion: z.string().optional(),
+  retryCount: z.number().optional(),
+  seed: z.number().optional(),
 }).transform((data) => ({
   ...data,
   mode: data.mode || data.tone || 'professional',

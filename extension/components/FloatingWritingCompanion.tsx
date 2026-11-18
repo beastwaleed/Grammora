@@ -28,11 +28,13 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
   const [suggestedText, setSuggestedText] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
 
   // Recalculate position whenever snapshot or view changes
   useEffect(() => {
     if (!snapshot) {
       setView('HIDDEN');
+      setRetryCount(0);
       return;
     }
 
@@ -50,14 +52,17 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
     setView((prev) => (prev === 'HIDDEN' ? 'PEN' : prev));
   }, [snapshot, view]);
 
-  // Execute AI action (local mock in Phase 2)
-  const executeAction = useCallback(async (action: WritingActionType) => {
+  // Execute AI action
+  const executeAction = useCallback(async (action: WritingActionType, isRegenerate = false) => {
     if (!snapshot) return;
 
     setSelectedAction(action);
     setLoading(true);
     setError(null);
-    setSuggestedText(null);
+    const previous = isRegenerate ? suggestedText : undefined;
+    if (isRegenerate) {
+      setSuggestedText(null);
+    }
     setView('PREVIEW');
 
     // Validate that selection is still valid before processing
@@ -68,7 +73,14 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
     }
 
     try {
-      const response = await executeAIAction(snapshot.originalText, action);
+      const nextRetryCount = isRegenerate ? retryCount + 1 : 0;
+      setRetryCount(nextRetryCount);
+
+      const response = await executeAIAction(snapshot.originalText, action, {
+        regenerate: isRegenerate,
+        previousSuggestion: previous || undefined,
+        retryCount: nextRetryCount,
+      });
 
       // Re-verify after latency
       if (!validateSelectionSnapshot(snapshot)) {
@@ -83,7 +95,7 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
     } finally {
       setLoading(false);
     }
-  }, [snapshot]);
+  }, [snapshot, suggestedText, retryCount]);
 
   // Apply suggestion to target editor
   const handleApply = useCallback(() => {
@@ -102,7 +114,7 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
   }, [onClose]);
 
   const handleRetry = useCallback(() => {
-    executeAction(selectedAction);
+    executeAction(selectedAction, true);
   }, [executeAction, selectedAction]);
 
   const handleBack = useCallback(() => {
@@ -133,7 +145,7 @@ export const FloatingWritingCompanion: React.FC<FloatingWritingCompanionProps> =
       {view === 'TOOLBAR' && (
         <WritingToolbar
           activeAction={selectedAction}
-          onSelectAction={(action) => executeAction(action)}
+          onSelectAction={(action) => executeAction(action, false)}
           onClose={handleDismiss}
         />
       )}

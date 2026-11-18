@@ -77,13 +77,16 @@ export default defineBackground(() => {
 
           case 'EXECUTE_AI_ACTION': {
             const settings = await getSettings();
-            const { text, action } = message.payload;
+            const { text, action, regenerate, previousSuggestion, retryCount } = message.payload;
             const backendUrl = settings.backendUrl || 'https://grammora-omega.vercel.app';
 
             let endpoint = `${backendUrl}/api/rewrite`;
             let bodyPayload: Record<string, any> = {
               text,
               requestId: `ext-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              regenerate,
+              previousSuggestion,
+              retryCount,
             };
 
             if (action === 'grammar') {

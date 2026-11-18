@@ -6,7 +6,16 @@ export type ExtensionMessage =
   | { type: 'UPDATE_SETTINGS'; payload: Partial<GrammoraSettings> }
   | { type: 'CHECK_SITE_STATUS'; payload: { url: string } }
   | { type: 'CHECK_BACKEND_HEALTH' }
-  | { type: 'EXECUTE_AI_ACTION'; payload: { text: string; action: WritingActionType } }
+  | {
+      type: 'EXECUTE_AI_ACTION';
+      payload: {
+        text: string;
+        action: WritingActionType;
+        regenerate?: boolean;
+        previousSuggestion?: string;
+        retryCount?: number;
+      };
+    }
   | { type: 'EXECUTE_AUTOCOMPLETE'; payload: { text: string; completionLength?: 'short' | 'medium' } }
   | { type: 'PING' };
 

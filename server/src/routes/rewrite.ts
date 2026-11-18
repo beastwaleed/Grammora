@@ -8,12 +8,23 @@ router.post(
   '/rewrite',
   validateBody(rewriteSchema),
   async (req: Request, res: Response, next: NextFunction) => {
-    const { text, requestId = `req-${Date.now()}` } = req.body;
+    const {
+      text,
+      requestId = `req-${Date.now()}`,
+      regenerate,
+      previousSuggestion,
+      retryCount,
+      seed,
+    } = req.body;
 
     try {
       const generated = await providerManager.execute({
         task: 'rewrite',
         text,
+        regenerate,
+        previousSuggestion,
+        retryCount,
+        seed,
       });
 
       res.json({

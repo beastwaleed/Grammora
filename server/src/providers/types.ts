@@ -6,6 +6,10 @@ export interface GenerateParams {
   mode?: 'professional' | 'friendly' | 'concise' | string;
   completionLength?: 'short' | 'medium';
   timeoutMs?: number;
+  regenerate?: boolean;
+  previousSuggestion?: string;
+  retryCount?: number;
+  seed?: number;
 }
 
 export interface GenerateResult {

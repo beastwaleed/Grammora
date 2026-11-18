@@ -16,7 +16,8 @@ export interface AIActionResult {
  */
 export async function executeAIAction(
   text: string,
-  action: WritingActionType
+  action: WritingActionType,
+  options?: { regenerate?: boolean; previousSuggestion?: string; retryCount?: number }
 ): Promise<AIActionResult> {
   const settings = await getSettings();
   const start = Date.now();
@@ -26,7 +27,13 @@ export async function executeAIAction(
     try {
       const response = await sendToBackground<AIActionResponse>({
         type: 'EXECUTE_AI_ACTION',
-        payload: { text, action },
+        payload: {
+          text,
+          action,
+          regenerate: options?.regenerate,
+          previousSuggestion: options?.previousSuggestion,
+          retryCount: options?.retryCount,
+        },
       });
 
       if (response && response.ok && response.result) {
@@ -55,6 +62,9 @@ export async function executeAIAction(
   let bodyPayload: Record<string, any> = {
     text,
     requestId: `direct-${Date.now()}`,
+    regenerate: options?.regenerate,
+    previousSuggestion: options?.previousSuggestion,
+    retryCount: options?.retryCount,
   };
 
   if (action === 'grammar') {

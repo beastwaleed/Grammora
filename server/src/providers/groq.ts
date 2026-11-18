@@ -4,20 +4,28 @@ import { buildPrompt } from '../prompts/system.js';
 export class GroqProvider implements AIProvider {
   readonly name = 'groq';
   private apiKey: string;
-  private model: string;
+  private configuredModel?: string;
   private endpoint = 'https://api.groq.com/openai/v1/chat/completions';
 
   constructor(apiKey?: string, model?: string) {
     this.apiKey = apiKey || process.env.GROQ_API_KEY || '';
-    this.model = model || process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
+    this.configuredModel = model || process.env.GROQ_MODEL;
   }
 
   private getApiKey(): string {
     return this.apiKey || process.env.GROQ_API_KEY || '';
   }
 
-  private getModel(): string {
-    return this.model || process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
+  private resolveModel(task: string): string {
+    if (this.configuredModel) {
+      return this.configuredModel;
+    }
+    // Autocomplete requires ultra-low latency without reasoning token overhead
+    if (task === 'autocomplete') {
+      return 'qwen/qwen3.8-27b';
+    }
+    // High-intelligence writing tasks (grammar, rewrite, tone) use the 120B parameter model
+    return 'openai/gpt-oss-120b';
   }
 
   isConfigured(): boolean {
@@ -27,17 +35,54 @@ export class GroqProvider implements AIProvider {
 
   async generate(params: GenerateParams): Promise<GenerateResult> {
     const apiKey = this.getApiKey();
-    const model = this.getModel();
     if (!this.isConfigured()) {
       throw new Error('Groq API key is not configured');
     }
 
+    const primaryModel = this.resolveModel(params.task);
+
+    try {
+      return await this.callGroq(primaryModel, apiKey, params);
+    } catch (err: any) {
+      // If the primary model fails and it's not already qwen, attempt fallback to qwen
+      if (primaryModel !== 'qwen/qwen3.8-27b') {
+        console.warn(`[GroqProvider] ${primaryModel} failed: ${err.message}. Retrying with qwen/qwen3.8-27b...`);
+        return await this.callGroq('qwen/qwen3.8-27b', apiKey, params);
+      }
+      throw err;
+    }
+  }
+
+  private async callGroq(
+    model: string,
+    apiKey: string,
+    params: GenerateParams
+  ): Promise<GenerateResult> {
     const { systemPrompt, userPrompt, maxTokens, temperature } = buildPrompt(params);
     const timeoutMs = params.timeoutMs || Number(process.env.REQUEST_TIMEOUT_MS) || 12000;
     const start = Date.now();
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    // Ensure reasoning models have enough token headroom
+    const tokenLimit = model.includes('120b') ? Math.max(maxTokens, 600) : maxTokens;
+
+    const requestBody: Record<string, any> = {
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      max_tokens: tokenLimit,
+      temperature,
+    };
+
+    if (params.seed !== undefined) {
+      requestBody.seed = params.seed;
+    } else if (params.retryCount) {
+      requestBody.seed = Math.floor(Date.now() % 1000000) + params.retryCount * 7919;
+    }
 
     try {
       const response = await fetch(this.endpoint, {
@@ -46,15 +91,7 @@ export class GroqProvider implements AIProvider {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          max_tokens: maxTokens,
-          temperature,
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal,
       });
 
@@ -88,7 +125,7 @@ export class GroqProvider implements AIProvider {
       return {
         result: outputText,
         provider: this.name,
-        model: this.model,
+        model,
         latencyMs: Date.now() - start,
       };
     } catch (err: any) {
@@ -102,4 +139,3 @@ export class GroqProvider implements AIProvider {
     }
   }
 }
-

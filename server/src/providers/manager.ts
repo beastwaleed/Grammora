@@ -9,8 +9,15 @@ export class ProviderManager {
   private mockProvider: AIProvider;
 
   constructor() {
-    this.primaryProvider = new GroqProvider();
-    this.backupProvider = new GeminiProvider();
+    const preferredProvider = (process.env.AI_PROVIDER || 'groq').toLowerCase();
+
+    if (preferredProvider === 'gemini') {
+      this.primaryProvider = new GeminiProvider();
+      this.backupProvider = new GroqProvider();
+    } else {
+      this.primaryProvider = new GroqProvider();
+      this.backupProvider = new GeminiProvider();
+    }
     this.mockProvider = new MockProvider();
   }
 
@@ -40,16 +47,16 @@ export class ProviderManager {
   }
 
   async execute(params: GenerateParams): Promise<GenerateResult> {
-    // 1. If Primary (Groq) is configured, attempt primary first
+    // 1. If Primary provider is configured, attempt primary first
     if (this.primaryProvider.isConfigured()) {
       try {
         return await this.primaryProvider.generate(params);
       } catch (err: any) {
         console.warn(
-          `[ProviderManager] Primary provider (${this.primaryProvider.name}) failed: ${err.message}. Attempting backup provider...`
+          `[ProviderManager] Primary provider (${this.primaryProvider.name}) failed: ${err.message}. Attempting backup provider (${this.backupProvider.name})...`
         );
 
-        // 2. Fall back to Backup (Gemini) if configured
+        // 2. Fall back to Backup if configured
         if (this.backupProvider.isConfigured()) {
           try {
             return await this.backupProvider.generate(params);
@@ -57,7 +64,6 @@ export class ProviderManager {
             console.error(
               `[ProviderManager] Backup provider (${this.backupProvider.name}) also failed: ${backupErr.message}`
             );
-            // If both real providers failed, return mock in local/dev mode or rethrow
             if (process.env.NODE_ENV !== 'production') {
               console.warn('[ProviderManager] Falling back to MockProvider for local continuity.');
               return await this.mockProvider.generate(params);
@@ -74,13 +80,13 @@ export class ProviderManager {
       }
     }
 
-    // 3. If only Secondary (Gemini) is configured
+    // 3. If only Secondary provider is configured
     if (this.backupProvider.isConfigured()) {
       try {
         return await this.backupProvider.generate(params);
       } catch (err: any) {
         if (process.env.NODE_ENV !== 'production') {
-          console.warn('[ProviderManager] Gemini failed. Falling back to MockProvider.');
+          console.warn(`[ProviderManager] ${this.backupProvider.name} failed. Falling back to MockProvider.`);
           return await this.mockProvider.generate(params);
         }
         throw err;
@@ -93,4 +99,3 @@ export class ProviderManager {
 }
 
 export const providerManager = new ProviderManager();
-

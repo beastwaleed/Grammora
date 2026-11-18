@@ -8,13 +8,25 @@ router.post(
   '/tone',
   validateBody(toneSchema),
   async (req: Request, res: Response, next: NextFunction) => {
-    const { text, mode, requestId = `req-${Date.now()}` } = req.body;
+    const {
+      text,
+      mode,
+      requestId = `req-${Date.now()}`,
+      regenerate,
+      previousSuggestion,
+      retryCount,
+      seed,
+    } = req.body;
 
     try {
       const generated = await providerManager.execute({
         task: 'tone',
         text,
         mode,
+        regenerate,
+        previousSuggestion,
+        retryCount,
+        seed,
       });
 
       res.json({
